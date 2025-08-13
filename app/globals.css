@@ -120,3 +120,7 @@
     @apply bg-background text-foreground;
   }
 }
+
+body {
+  background-color: #F3F4F6;
+}
