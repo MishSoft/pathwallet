@@ -17,9 +17,9 @@ import { Home, Landmark, PiggyBank, Target, Settings } from "lucide-react";
 const navItems = [
   { href: "/dashboard", label: "დაფა", icon: Home },
   { href: "/dashboard/income", label: "შემოსავალი", icon: Landmark },
-  { href: "/expenses", label: "ხარჯები", icon: PiggyBank },
-  { href: "/goals", label: "მიზნები", icon: Target },
-  { href: "/settings", label: "პარამეტრები", icon: Settings },
+  { href: "/dashboard/expense", label: "ხარჯები", icon: PiggyBank },
+  { href: "/dashboard/goals", label: "მიზნები", icon: Target },
+  { href: "/dashboard/settings", label: "პარამეტრები", icon: Settings },
 ];
 
 const Sidebar = () => {
