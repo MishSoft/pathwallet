@@ -1,5 +1,3 @@
-// src/components/dashboard/RecentTransactions.tsx
-
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -12,21 +10,35 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 
-interface Transaction {
-  type: "შემოსავალი" | "ხარჯი";
-  source?: string;
-  category?: string;
+// მონაცემთა ტიპების განსაზღვრა
+interface Income {
+  id: string;
+  source: string;
   amount: number;
   date: string;
 }
 
-const transactions: Transaction[] = [
-  { type: "შემოსავალი", source: "ხელფასი", amount: 2500, date: "2025-08-01" },
-  { type: "ხარჯი", category: "საკვები", amount: 500, date: "2025-08-05" },
-  { type: "ხარჯი", category: "ქირა", amount: 800, date: "2025-08-02" },
-];
+interface Expense {
+  id: string;
+  amount: number;
+  category: string;
+  date: string;
+}
 
-const RecentTransactions = () => {
+interface RecentTransactionsProps {
+  incomes: Income[];
+  expenses: Expense[];
+}
+
+const RecentTransactions: React.FC<RecentTransactionsProps> = ({
+  incomes,
+  expenses,
+}) => {
+  // მონაცემების გაერთიანება და დახარისხება თარიღის მიხედვით
+  const transactions = [...incomes, ...expenses].sort(
+    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+  );
+
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -50,12 +62,10 @@ const RecentTransactions = () => {
             {transactions.map((t, index) => (
               <TableRow
                 key={index}
-                className={
-                  t.type === "ხარჯი" ? "text-red-500" : "text-green-500"
-                }
+                className={"source" in t ? "text-green-500" : "text-red-500"}
               >
-                <TableCell>{t.type}</TableCell>
-                <TableCell>{t.source || t.category}</TableCell>
+                <TableCell>{"source" in t ? "შემოსავალი" : "ხარჯი"}</TableCell>
+                <TableCell>{"source" in t ? t.source : t.category}</TableCell>
                 <TableCell>{t.amount} ლარი</TableCell>
                 <TableCell>{t.date}</TableCell>
               </TableRow>

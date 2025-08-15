@@ -3,7 +3,7 @@
 
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -17,11 +17,19 @@ import { Label } from "@/components/ui/label";
 import { useRouter } from "next/navigation";
 
 const LoginPage = () => {
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const router = useRouter();
+
+  useEffect(() => {
+    // გვერდის ჩატვირთვისას ვამოწმებთ, არსებობს თუ არა ტოკენი
+    const token = localStorage.getItem("token");
+    if (token) {
+      router.push("/dashboard");
+    }
+  }, [router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,7 +37,7 @@ const LoginPage = () => {
     setError("");
 
     try {
-      const response = await fetch("../api/auth/login", {
+      const response = await fetch("/api/auth/login", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -45,7 +53,6 @@ const LoginPage = () => {
       const data = await response.json();
       localStorage.setItem("token", data.token);
 
-      // ავტორიზაციის შემდეგ ავტომატურად გადამისამართება დაფის გვერდზე
       router.push("/dashboard");
     } catch (err: any) {
       setError(err.message);

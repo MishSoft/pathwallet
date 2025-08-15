@@ -4,35 +4,35 @@ import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
-// შემოსავლის დამატება
+// ახალი მიზნის დამატება
 export async function POST(request: NextRequest) {
   const payload = await verifyJWT(request);
 
   if (payload instanceof NextResponse) {
-    return payload; // აბრუნებს 401 Unauthorized შეცდომას, თუ ტოკენი არასწორია
+    return payload;
   }
 
   try {
-    const { amount, source } = await request.json();
+    const { title, targetAmount } = await request.json();
 
-    if (!amount || !source) {
+    if (!title || !targetAmount) {
       return NextResponse.json(
-        { error: "Amount and source are required." },
+        { error: "Title and targetAmount are required." },
         { status: 400 }
       );
     }
 
-    const newIncome = await prisma.income.create({
+    const newGoal = await prisma.financialGoal.create({
       data: {
-        amount,
-        source,
+        title,
+        targetAmount: Number(targetAmount),
         userId: payload.userId as string,
       },
     });
 
-    return NextResponse.json(newIncome, { status: 201 });
+    return NextResponse.json(newGoal, { status: 201 });
   } catch (error) {
-    console.error("Failed to add income:", error);
+    console.error("Failed to add goal:", error);
     return NextResponse.json(
       { error: "Internal Server Error" },
       { status: 500 }
@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// ყველა შემოსავლის წამოსაღებად
+// ყველა მიზნის წამოღება
 export async function GET(request: NextRequest) {
   const payload = await verifyJWT(request);
 
@@ -49,18 +49,18 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const incomes = await prisma.income.findMany({
+    const goals = await prisma.financialGoal.findMany({
       where: {
         userId: payload.userId as string,
       },
       orderBy: {
-        date: "desc",
+        createdAt: "desc", // ეს ხაზი მუშაობს მხოლოდ მას შემდეგ, რაც მიგრაციას გაუშვებთ
       },
     });
 
-    return NextResponse.json(incomes, { status: 200 });
+    return NextResponse.json(goals, { status: 200 });
   } catch (error) {
-    console.error("Failed to get incomes:", error);
+    console.error("Failed to get goals:", error);
     return NextResponse.json(
       { error: "Internal Server Error" },
       { status: 500 }
@@ -68,7 +68,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// შემოსავლის წასაშლელად
+// მიზნის წაშლა
 export async function DELETE(request: NextRequest) {
   const payload = await verifyJWT(request);
 
@@ -81,21 +81,21 @@ export async function DELETE(request: NextRequest) {
 
     if (!id) {
       return NextResponse.json(
-        { error: "Income ID is required." },
+        { error: "Goal ID is required." },
         { status: 400 }
       );
     }
 
-    const deletedIncome = await prisma.income.delete({
+    const deletedGoal = await prisma.financialGoal.delete({
       where: {
         id,
-        userId: payload.userId as string, // ვამოწმებთ, რომ მომხმარებელს აქვს უფლება წაშალოს
+        userId: payload.userId as string,
       },
     });
 
-    return NextResponse.json(deletedIncome, { status: 200 });
+    return NextResponse.json(deletedGoal, { status: 200 });
   } catch (error) {
-    console.error("Failed to delete income:", error);
+    console.error("Failed to delete goal:", error);
     return NextResponse.json(
       { error: "Internal Server Error" },
       { status: 500 }

@@ -1,5 +1,3 @@
-// / src/app / income / page.tsx;
-
 "use client";
 
 import React, { useEffect, useState } from "react";
@@ -18,22 +16,107 @@ import {
 import { Button } from "@/components/ui/button";
 import AddIncomeModal from "./components/AddIncomeModal";
 
-// დროებითი მონაცემები ცხრილისთვის
-const incomeData = [
-  { id: "1", source: "ხელფასი", amount: 2500, date: "2025-08-01" },
-  { id: "2", source: "ფრილანსინგი", amount: 800, date: "2025-07-28" },
-  { id: "3", source: "ინვესტიცია", amount: 150, date: "2025-07-15" },
-];
+interface Income {
+  id: string;
+  source: string;
+  amount: number;
+  date: string;
+}
 
 const IncomePage = () => {
   const router = useRouter();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [incomes, setIncomes] = useState<Income[]>([]);
 
-  // დროებითი ფუნქცია, რომელიც მოგვიანებით დააკავშირებთ ბეკენდს
-  const handleAddIncome = (income: { source: string; amount: number }) => {
-    console.log("ახალი შემოსავალი დაემატა:", income);
-    // აქ მოგვიანებით დაემატება ბეკენდზე მონაცემების გაგზავნის ლოგიკა
+  const fetchIncomes = async (token: string) => {
+    setLoading(true);
+    try {
+      const response = await fetch("/api/income", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        const data: Income[] = await response.json();
+        setIncomes(data);
+      } else if (response.status === 401) {
+        localStorage.removeItem("token");
+        router.push("/login");
+      } else {
+        throw new Error("Failed to fetch incomes.");
+      }
+    } catch (error) {
+      console.error("Failed to fetch incomes:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAddIncome = async (newIncome: {
+    source: string;
+    amount: number;
+  }) => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      router.push("/login");
+      return;
+    }
+
+    try {
+      const response = await fetch("/api/income", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`, // სწორი ფორმატი
+        },
+        body: JSON.stringify(newIncome),
+      });
+
+      if (response.ok) {
+        await fetchIncomes(token);
+      } else if (response.status === 401) {
+        localStorage.removeItem("token");
+        router.push("/login");
+      } else {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to add income.");
+      }
+    } catch (error) {
+      console.error("Failed to add income:", error);
+    }
+  };
+
+  const handleDeleteIncome = async (id: string) => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      router.push("/login");
+      return;
+    }
+
+    try {
+      const response = await fetch("/api/income", {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`, // სწორი ფორმატი
+        },
+        body: JSON.stringify({ id }),
+      });
+
+      if (response.ok) {
+        await fetchIncomes(token);
+      } else if (response.status === 401) {
+        localStorage.removeItem("token");
+        router.push("/login");
+      } else {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to delete income.");
+      }
+    } catch (error) {
+      console.error("Failed to delete income:", error);
+    }
   };
 
   useEffect(() => {
@@ -42,8 +125,8 @@ const IncomePage = () => {
       router.push("/login");
     } else {
       setIsAuthenticated(true);
+      fetchIncomes(token);
     }
-    setLoading(false);
   }, [router]);
 
   if (loading) {
@@ -63,37 +146,49 @@ const IncomePage = () => {
       <Header />
       <div className="flex flex-1">
         <Sidebar />
-        <div className="flex-1 p-8 bg-gray-100 dark:bg-gray-950 ">
+        <div className="flex-1 p-8 bg-gray-100 dark:bg-gray-950">
           <Card className="w-full">
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="text-3xl font-bold">შემოსავლები</CardTitle>
               <AddIncomeModal onAddIncome={handleAddIncome} />
             </CardHeader>
             <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>წყარო</TableHead>
-                    <TableHead>თანხა</TableHead>
-                    <TableHead>თარიღი</TableHead>
-                    <TableHead>მოქმედება</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {incomeData.map((income) => (
-                    <TableRow key={income.id}>
-                      <TableCell>{income.source}</TableCell>
-                      <TableCell>{income.amount} ლარი</TableCell>
-                      <TableCell>{income.date}</TableCell>
-                      <TableCell>
-                        <Button variant="ghost" size="sm">
-                          წაშლა
-                        </Button>
-                      </TableCell>
+              {incomes.length > 0 ? (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>წყარო</TableHead>
+                      <TableHead>თანხა</TableHead>
+                      <TableHead>თარიღი</TableHead>
+                      <TableHead>მოქმედება</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {incomes.map((income) => (
+                      <TableRow key={income.id}>
+                        <TableCell>{income.source}</TableCell>
+                        <TableCell>{income.amount} ლარი</TableCell>
+                        <TableCell>
+                          {new Date(income.date).toLocaleDateString()}
+                        </TableCell>
+                        <TableCell>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDeleteIncome(income.id)}
+                          >
+                            წაშლა
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  <p>ჯერ არ გაქვთ დამატებული შემოსავალი.</p>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>

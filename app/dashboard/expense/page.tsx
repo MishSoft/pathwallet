@@ -16,22 +16,115 @@ import {
 import { Button } from "@/components/ui/button";
 import AddExpenseModal from "./components/AddExpenseModal";
 
-// დროებითი მონაცემები ცხრილისთვის
-const expenseData = [
-  { id: "1", category: "საკვები", amount: 500, date: "2025-08-05" },
-  { id: "2", category: "ქირა", amount: 800, date: "2025-08-02" },
-  { id: "3", category: "გასართობი", amount: 120, date: "2025-07-30" },
-];
+// მონაცემთა ტიპების განსაზღვრა
+interface Expense {
+  id: string;
+  category: string;
+  amount: number;
+  date: string;
+}
 
 const ExpensesPage = () => {
   const router = useRouter();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [expenses, setExpenses] = useState<Expense[]>([]);
 
-  // დროებითი ფუნქცია, რომელიც მოგვიანებით დააკავშირებთ ბეკენდს
-  const handleAddExpense = (expense: { category: string; amount: number }) => {
-    console.log("ახალი ხარჯი დაემატა:", expense);
-    // აქ მოგვიანებით დაემატება ბეკენდზე მონაცემების გაგზავნის ლოგიკა
+  const fetchExpenses = async () => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      router.push("/login");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const response = await fetch("/api/expence", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        const data: Expense[] = await response.json();
+        setExpenses(data);
+      } else if (response.status === 401) {
+        localStorage.removeItem("token");
+        router.push("/login");
+      } else {
+        throw new Error("Failed to fetch expenses.");
+      }
+    } catch (error) {
+      console.error("Failed to fetch expenses:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAddExpense = async (newExpense: {
+    category: string;
+    amount: number;
+  }) => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      router.push("/login");
+      return;
+    }
+
+    try {
+      const response = await fetch("/api/expence", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(newExpense),
+      });
+
+      if (response.ok) {
+        await fetchExpenses();
+        console.log(fetchExpenses());
+      } else if (response.status === 401) {
+        localStorage.removeItem("token");
+        router.push("/login");
+      } else {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to add expense.");
+      }
+    } catch (error) {
+      console.error("Failed to add expense:", error);
+    }
+  };
+
+  const handleDeleteExpense = async (id: string) => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      router.push("/login");
+      return;
+    }
+
+    try {
+      const response = await fetch("/api/expense", {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ id }),
+      });
+
+      if (response.ok) {
+        await fetchExpenses();
+      } else if (response.status === 401) {
+        localStorage.removeItem("token");
+        router.push("/login");
+      } else {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to delete expense.");
+      }
+    } catch (error) {
+      console.error("Failed to delete expense:", error);
+    }
   };
 
   useEffect(() => {
@@ -40,8 +133,8 @@ const ExpensesPage = () => {
       router.push("/login");
     } else {
       setIsAuthenticated(true);
+      fetchExpenses();
     }
-    setLoading(false);
   }, [router]);
 
   if (loading) {
@@ -61,37 +154,49 @@ const ExpensesPage = () => {
       <Header />
       <div className="flex flex-1">
         <Sidebar />
-        <div className="flex-1 p-8 bg-gray-100 dark:bg-gray-950 ">
+        <div className="flex-1 p-8 bg-gray-100 dark:bg-gray-950">
           <Card className="w-full">
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="text-3xl font-bold">ხარჯები</CardTitle>
               <AddExpenseModal onAddExpense={handleAddExpense} />
             </CardHeader>
             <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>კატეგორია</TableHead>
-                    <TableHead>თანხა</TableHead>
-                    <TableHead>თარიღი</TableHead>
-                    <TableHead>მოქმედება</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {expenseData.map((expense) => (
-                    <TableRow key={expense.id}>
-                      <TableCell>{expense.category}</TableCell>
-                      <TableCell>{expense.amount} ლარი</TableCell>
-                      <TableCell>{expense.date}</TableCell>
-                      <TableCell>
-                        <Button variant="ghost" size="sm">
-                          წაშლა
-                        </Button>
-                      </TableCell>
+              {expenses.length > 0 ? (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>კატეგორია</TableHead>
+                      <TableHead>თანხა</TableHead>
+                      <TableHead>თარიღი</TableHead>
+                      <TableHead>მოქმედება</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {expenses.map((expense) => (
+                      <TableRow key={expense.id}>
+                        <TableCell>{expense.category}</TableCell>
+                        <TableCell>{expense.amount} ლარი</TableCell>
+                        <TableCell>
+                          {new Date(expense.date).toLocaleDateString()}
+                        </TableCell>
+                        <TableCell>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDeleteExpense(expense.id)}
+                          >
+                            წაშლა
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  <p>ჯერ არ გაქვთ დამატებული ხარჯი.</p>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>

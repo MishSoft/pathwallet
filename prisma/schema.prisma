@@ -62,6 +62,7 @@ model FinancialGoal {
   targetAmount    Float
   savedAmount     Float    @default(0)
   targetDate      DateTime?
+  createdAt       DateTime @default(now()) // დამატებულია createdAt ველი
 
   // Relationship with User
   userId          String
