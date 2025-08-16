@@ -26,8 +26,8 @@ const Sidebar = () => {
   const pathname = usePathname();
 
   return (
-    <aside className=" z-10 hidden w-20 flex-col border-r bg-background sm:flex">
-      <nav className="flex flex-col items-center gap-4 px-2 sm:py-5">
+    <aside className=" z-10 w-full flex-row sm:w-20 sm:flex-col border-r bg-background sm:flex">
+      <nav className="flex sm:flex-col p-2 flex-row items-center gap-4 px-2 sm:py-5">
         <Link
           href="/dashboard"
           className="group flex h-9 w-9 shrink-0 items-center justify-center gap-2 rounded-full bg-primary text-lg font-semibold text-primary-foreground md:h-8 md:w-8 md:text-base"

@@ -25,14 +25,19 @@ interface Expense {
   date: string;
 }
 
+// ახალი ინტერფეისი ღილაკების ფუნქციონალისთვის
 interface RecentTransactionsProps {
   incomes: Income[];
   expenses: Expense[];
+  onAddIncomeClick: () => void;
+  onAddExpenseClick: () => void;
 }
 
 const RecentTransactions: React.FC<RecentTransactionsProps> = ({
   incomes,
   expenses,
+  onAddIncomeClick,
+  onAddExpenseClick,
 }) => {
   // მონაცემების გაერთიანება და დახარისხება თარიღის მიხედვით
   const transactions = [...incomes, ...expenses].sort(
@@ -40,38 +45,65 @@ const RecentTransactions: React.FC<RecentTransactionsProps> = ({
   );
 
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+    <Card >
+      <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between space-y-2 sm:space-y-0 pb-2">
         <CardTitle className="text-2xl font-bold">ბოლო ტრანზაქციები</CardTitle>
-        <div className="space-x-2">
-          <Button variant="outline">შემოსავლის დამატება</Button>
-          <Button>ხარჯის დამატება</Button>
+        <div className="flex flex-col gap-2 space-y-2 sm:space-y-0 sm:space-x-2">
+          <Button
+            variant="outline"
+            onClick={onAddIncomeClick}
+            className="w-full sm:w-auto"
+          >
+            შემოსავლის დამატება
+          </Button>
+          <Button onClick={onAddExpenseClick} className="w-full sm:w-auto">
+            ხარჯის დამატება
+          </Button>
         </div>
       </CardHeader>
       <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>ტიპი</TableHead>
-              <TableHead>აღწერა</TableHead>
-              <TableHead>თანხა</TableHead>
-              <TableHead>თარიღი</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {transactions.map((t, index) => (
-              <TableRow
-                key={index}
-                className={"source" in t ? "text-green-500" : "text-red-500"}
-              >
-                <TableCell>{"source" in t ? "შემოსავალი" : "ხარჯი"}</TableCell>
-                <TableCell>{"source" in t ? t.source : t.category}</TableCell>
-                <TableCell>{t.amount} ლარი</TableCell>
-                <TableCell>{t.date}</TableCell>
+        {/* რესპონსიული კონტეინერი ცხრილისთვის */}
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="min-w-[100px] whitespace-nowrap">
+                  ტიპი
+                </TableHead>
+                <TableHead className="min-w-[150px] whitespace-nowrap">
+                  აღწერა
+                </TableHead>
+                <TableHead className="min-w-[100px] whitespace-nowrap text-right">
+                  თანხა
+                </TableHead>
+                <TableHead className="min-w-[120px] whitespace-nowrap text-right">
+                  თარიღი
+                </TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {transactions.map((t, index) => (
+                <TableRow
+                  key={index}
+                  className={"source" in t ? "text-green-500" : "text-red-500"}
+                >
+                  <TableCell className="font-medium whitespace-nowrap">
+                    {"source" in t ? "შემოსავალი" : "ხარჯი"}
+                  </TableCell>
+                  <TableCell className="whitespace-nowrap">
+                    {"source" in t ? t.source : t.category}
+                  </TableCell>
+                  <TableCell className="whitespace-nowrap text-right">
+                    {t.amount} ლარი
+                  </TableCell>
+                  <TableCell className="whitespace-nowrap text-right">
+                    {new Date(t.date).toLocaleDateString()}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
       </CardContent>
     </Card>
   );

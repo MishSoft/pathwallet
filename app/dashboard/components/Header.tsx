@@ -15,7 +15,7 @@ const Header = () => {
   };
 
   return (
-    <header className="flex h-16 items-center justify-between border-b bg-white px-6 shadow-sm dark:bg-gray-950 dark:border-gray-800">
+    <header className="flex w-full h-16 items-center justify-between border-b bg-white px-6 shadow-sm dark:bg-gray-950 dark:border-gray-800">
       <div className="flex items-center gap-2">
         <span className="text-lg font-bold">PathWallet</span>
       </div>

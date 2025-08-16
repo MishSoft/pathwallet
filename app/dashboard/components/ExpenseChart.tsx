@@ -41,12 +41,12 @@ const ExpenseChart: React.FC<ExpenseChartProps> = ({ expenses }) => {
   }, [] as { category: string; amount: number }[]);
 
   return (
-    <Card>
+    <Card className="w-full">
       <CardHeader>
         <CardTitle>ხარჯების განაწილება</CardTitle>
         <CardDescription>თვიური ხარჯები კატეგორიის მიხედვით</CardDescription>
       </CardHeader>
-      <CardContent className="h-[300px] flex items-center justify-center">
+      <CardContent className="h-[300px]  flex items-center justify-center ">
         {groupedData.length > 0 ? (
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
@@ -54,11 +54,16 @@ const ExpenseChart: React.FC<ExpenseChartProps> = ({ expenses }) => {
                 data={groupedData}
                 cx="50%"
                 cy="50%"
-                innerRadius={60}
+                innerRadius={50}
                 outerRadius={80}
                 fill="#8884d8"
                 dataKey="amount"
                 nameKey="category"
+                label={({ name, percent }) =>
+                  `${name} ${percent ? (percent * 100).toFixed(0) : 0}%`
+                }
+                // მცირე ეკრანებზე ლეიბლების ოპტიმიზაცია
+                labelLine={false}
               >
                 {groupedData.map((entry, index) => (
                   <Cell
@@ -67,12 +72,17 @@ const ExpenseChart: React.FC<ExpenseChartProps> = ({ expenses }) => {
                   />
                 ))}
               </Pie>
-              <Tooltip />
-              <Legend />
+              {/* Tooltip-ის და Legend-ის პოზიციების ოპტიმიზაცია */}
+              <Tooltip formatter={(value, name) => [`${value} ლარი`, name]} />
+              <Legend
+                layout="horizontal"
+                align="center"
+                verticalAlign="bottom"
+              />
             </PieChart>
           </ResponsiveContainer>
         ) : (
-          <p>ჯერ არ გაქვთ ხარჯები.</p>
+          <p className="text-center text-gray-500">ჯერ არ გაქვთ ხარჯები.</p>
         )}
       </CardContent>
     </Card>

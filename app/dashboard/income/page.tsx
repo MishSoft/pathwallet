@@ -142,48 +142,50 @@ const IncomePage = () => {
   }
 
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="flex  flex-col min-h-screen">
       <Header />
-      <div className="flex flex-1">
+      <div className="flex flex-1 flex-col sm:flex-row">
         <Sidebar />
-        <div className="flex-1 p-8 bg-gray-100 dark:bg-gray-950">
-          <Card className="w-full">
-            <CardHeader className="flex flex-row items-center justify-between">
+        <div className="flex-1 w-full p-8 bg-gray-100 dark:bg-gray-950">
+          <Card>
+            <CardHeader className="flex md:flex-row md:items-center flex-col justify-between">
               <CardTitle className="text-3xl font-bold">შემოსავლები</CardTitle>
               <AddIncomeModal onAddIncome={handleAddIncome} />
             </CardHeader>
             <CardContent>
               {incomes.length > 0 ? (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>წყარო</TableHead>
-                      <TableHead>თანხა</TableHead>
-                      <TableHead>თარიღი</TableHead>
-                      <TableHead>მოქმედება</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {incomes.map((income) => (
-                      <TableRow key={income.id}>
-                        <TableCell>{income.source}</TableCell>
-                        <TableCell>{income.amount} ლარი</TableCell>
-                        <TableCell>
-                          {new Date(income.date).toLocaleDateString()}
-                        </TableCell>
-                        <TableCell>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDeleteIncome(income.id)}
-                          >
-                            წაშლა
-                          </Button>
-                        </TableCell>
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>წყარო</TableHead>
+                        <TableHead>თანხა</TableHead>
+                        <TableHead>თარიღი</TableHead>
+                        <TableHead>მოქმედება</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {incomes.map((income) => (
+                        <TableRow key={income.id}>
+                          <TableCell>{income.source}</TableCell>
+                          <TableCell>{income.amount} ლარი</TableCell>
+                          <TableCell>
+                            {new Date(income.date).toLocaleDateString()}
+                          </TableCell>
+                          <TableCell>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDeleteIncome(income.id)}
+                            >
+                              წაშლა
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
               ) : (
                 <div className="text-center py-8 text-gray-500">
                   <p>ჯერ არ გაქვთ დამატებული შემოსავალი.</p>

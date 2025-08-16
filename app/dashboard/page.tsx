@@ -86,12 +86,32 @@ const DashboardPage = () => {
     return null;
   }
 
+  // ახალი ფუნქციები, რომლებიც გადაეცემა props-ის სახით
+  const handleAddIncomeClick = () => {
+    router.push("/dashboard/income");
+  };
+  const handleAddExpenseClick = () => {
+    router.push("/dashboard/expense");
+  };
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <p>იტვირთება...</p>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return null;
+  }
+
   return (
     <div className="flex flex-col min-h-screen">
       <Header />
-      <div className="flex flex-1">
+      <div className="flex flex-1 flex-col sm:flex-row">
         <Sidebar />
-        <div className="flex-1 p-8 bg-gray-100 dark:bg-gray-950">
+        <div className="flex-1 border  w-full p-8 bg-gray-100 dark:bg-gray-950">
           <header className="mb-8">
             <h1 className="text-4xl font-bold">მთავარი დაფა</h1>
             <p className="text-gray-600">
@@ -99,7 +119,7 @@ const DashboardPage = () => {
             </p>
           </header>
 
-          <section className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 mb-8">
+          <section className="grid w-full gap-4 md:grid-cols-2 lg:grid-cols-3 mb-8">
             <StatsCard
               title="თვიური ბალანსი"
               value={`${balance} ლარი`}
@@ -117,9 +137,14 @@ const DashboardPage = () => {
             />
           </section>
 
-          <section className="grid gap-4 lg:grid-cols-2">
+          <section className="dd_ert flex flex-col  gap-4 lg:grid-cols-2">
             {/* აქ გადავცემთ დინამიურ მონაცემებს */}
-            <RecentTransactions incomes={incomes} expenses={expenses} />
+            <RecentTransactions
+              onAddIncomeClick={handleAddIncomeClick} // ახალი ფუნქცია
+              onAddExpenseClick={handleAddExpenseClick} // ახალი ფუნქცია
+              incomes={incomes}
+              expenses={expenses}
+            />
             <ExpenseChart expenses={expenses} />
           </section>
         </div>

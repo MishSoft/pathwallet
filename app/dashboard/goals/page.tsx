@@ -139,11 +139,11 @@ const GoalsPage = () => {
   return (
     <div className="flex flex-col min-h-screen">
       <Header />
-      <div className="flex flex-1">
+      <div className="flex flex-1 flex-col sm:flex-row">
         <Sidebar />
-        <div className="flex-1 p-8 bg-gray-100 dark:bg-gray-950">
-          <Card className="w-full">
-            <CardHeader className="flex flex-row items-center justify-between">
+        <div className="flex-1 w-full p-8 bg-gray-100 dark:bg-gray-950">
+          <Card>
+            <CardHeader className="flex flex-col md:flex-row md:items-center justify-between">
               <CardTitle className="text-3xl font-bold">მიზნები</CardTitle>
               <AddGoalModal onAddGoal={handleAddGoal} />
             </CardHeader>

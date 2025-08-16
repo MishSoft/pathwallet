@@ -152,46 +152,48 @@ const ExpensesPage = () => {
   return (
     <div className="flex flex-col min-h-screen">
       <Header />
-      <div className="flex flex-1">
+      <div className="flex flex-1 flex-col sm:flex-row">
         <Sidebar />
-        <div className="flex-1 p-8 bg-gray-100 dark:bg-gray-950">
-          <Card className="w-full">
-            <CardHeader className="flex flex-row items-center justify-between">
+        <div className="flex-1 p-8 w-full bg-gray-100 dark:bg-gray-950">
+          <Card>
+            <CardHeader className="flex md:flex-row flex-col md:items-center justify-between">
               <CardTitle className="text-3xl font-bold">ხარჯები</CardTitle>
               <AddExpenseModal onAddExpense={handleAddExpense} />
             </CardHeader>
             <CardContent>
               {expenses.length > 0 ? (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>კატეგორია</TableHead>
-                      <TableHead>თანხა</TableHead>
-                      <TableHead>თარიღი</TableHead>
-                      <TableHead>მოქმედება</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {expenses.map((expense) => (
-                      <TableRow key={expense.id}>
-                        <TableCell>{expense.category}</TableCell>
-                        <TableCell>{expense.amount} ლარი</TableCell>
-                        <TableCell>
-                          {new Date(expense.date).toLocaleDateString()}
-                        </TableCell>
-                        <TableCell>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDeleteExpense(expense.id)}
-                          >
-                            წაშლა
-                          </Button>
-                        </TableCell>
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>კატეგორია</TableHead>
+                        <TableHead>თანხა</TableHead>
+                        <TableHead>თარიღი</TableHead>
+                        <TableHead>მოქმედება</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {expenses.map((expense) => (
+                        <TableRow key={expense.id}>
+                          <TableCell>{expense.category}</TableCell>
+                          <TableCell>{expense.amount} ლარი</TableCell>
+                          <TableCell>
+                            {new Date(expense.date).toLocaleDateString()}
+                          </TableCell>
+                          <TableCell>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDeleteExpense(expense.id)}
+                            >
+                              წაშლა
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
               ) : (
                 <div className="text-center py-8 text-gray-500">
                   <p>ჯერ არ გაქვთ დამატებული ხარჯი.</p>
