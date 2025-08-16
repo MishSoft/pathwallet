@@ -1,27 +1,36 @@
+// src/components/layout/Header.tsx
+
 "use client";
 
 import React from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { MessageSquare } from "lucide-react"; // AI იკონი
 
 const Header = () => {
   const router = useRouter();
 
   const handleLogout = () => {
-    // წაშლა local storage-დან JWT ტოკენს
     localStorage.removeItem("token");
-    // გადამისამართება შესვლის გვერდზე
     router.push("/login");
   };
 
   return (
-    <header className="flex w-full h-16 items-center justify-between border-b bg-white px-6 shadow-sm dark:bg-gray-950 dark:border-gray-800">
+    <header className="flex h-16 items-center justify-between border-b bg-white px-6 shadow-sm dark:bg-gray-950 dark:border-gray-800">
       <div className="flex items-center gap-2">
         <span className="text-lg font-bold">PathWallet</span>
       </div>
-      <Button variant="ghost" onClick={handleLogout}>
-        გამოსვლა
-      </Button>
+      <div className="flex items-center gap-2">
+        <Link href="/dashboard/chat">
+          <Button variant="ghost" size="icon">
+            <MessageSquare className="h-5 w-5" />
+          </Button>
+        </Link>
+        <Button variant="ghost" onClick={handleLogout}>
+          გამოსვლა
+        </Button>
+      </div>
     </header>
   );
 };
