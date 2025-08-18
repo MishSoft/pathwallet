@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextRequest, NextResponse } from "next/server";
 import { verifyJWT } from "@/app/lib/auth";
 import { PrismaClient } from "@prisma/client";
@@ -6,9 +7,9 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 const prisma = new PrismaClient();
 
 interface ChatAction {
-  action: "add_income" | "add_expense" | "unknown";
+  action: "add_income" | "add_expense" | "unknown" | "advice";
   data?: {
-    amount: number;
+    amount?: number;
     source?: string;
     category?: string;
   };
@@ -16,11 +17,9 @@ interface ChatAction {
 }
 
 export async function POST(request: NextRequest) {
+  // ავტორიზაცია cookie–დან
   const payload = await verifyJWT(request);
-
-  if (payload instanceof NextResponse) {
-    return payload;
-  }
+  if (payload instanceof NextResponse) return payload;
 
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
@@ -36,57 +35,72 @@ export async function POST(request: NextRequest) {
 
   try {
     const { prompt } = await request.json();
+    const userId = payload.userId as string;
+
+    // მოვიტანოთ user-ის მონაცემები
+    const incomes = await prisma.income.findMany({ where: { userId } });
+    const expenses = await prisma.expense.findMany({ where: { userId } });
+    const totalIncome = incomes.reduce((sum, income) => sum + income.amount, 0);
+    const totalExpense = expenses.reduce(
+      (sum, expense) => sum + expense.amount,
+      0
+    );
+    const balance = totalIncome - totalExpense;
 
     const systemPrompt = `
-      შენ ხარ ფინანსური ასისტენტი PathWallet-ისგან. შენი მიზანია დაეხმარო მომხმარებლებს ფინანსების მართვაში.
-      შენ შეგიძლია მომხმარებლის მოთხოვნებიდან ამოიღო ინფორმაცია შემოსავლის ან ხარჯის დასამატებლად.
-      
-      If a user asks to add an income, extract the 'amount' and 'source' and respond with a JSON object.
-      If a user asks to add an expense, extract the 'amount' and 'category' and respond with a JSON object.
-      
-      If the request is not related to adding income or expense, respond with a JSON object with 'action' set to 'unknown' and a friendly text response.
-      
-      პასუხის JSON ფორმატები:
-      
-      შემოსავლის დასამატებლად:
-      {
-        "action": "add_income",
-        "data": {
-          "amount": <number>,
-          "source": "<string>"
-        },
-        "response": "<მეგობრული შეტყობინება, რომელიც მოქმედებას ადასტურებს>"
-      }
-      
-      ხარჯის დასამატებლად:
-      {
-        "action": "add_expense",
-        "data": {
-          "amount": <number>,
-          "category": "<string>"
-        },
-        "response": "<მეგობრული შეტყობინება, რომელიც მოქმედებას ადასტურებს>"
-      }
+      You are the financial assistant of PathWallet. Your goal is to help users manage their finances.
 
-      სხვა მოთხოვნებისთვის:
-      {
-        "action": "unknown",
-        "response": "<მეგობრული შეტყობინება, რომელიც განმარტავს, რომ მხოლოდ ფინანსურ მოქმედებებში შეგიძლია დახმარება>"
-      }
-      
-      მომხმარებლის ენა არის ქართული. უპასუხე ქართულად.
-      დარწმუნდი, რომ amount არის რიცხვი. თუ amount არ არის მითითებული, სთხოვე მომხმარებელს, რომ მიუთითოს.
-      
-      მომხმარებლის მოთხოვნა: "${prompt}"
+      User's current financial data:
+      - Total income: ${totalIncome} GEL
+      - Total expenses: ${totalExpense} GEL
+      - Current balance: ${balance} GEL
+      - Expense details: ${JSON.stringify(
+        expenses.map((e) => ({ amount: e.amount, category: e.category }))
+      )}
+
+      Rules:
+      1. If the user requests to add income, respond with:
+        {
+          "action": "add_income",
+          "data": { "amount": <number>, "source": "<string>" },
+          "response": "<friendly confirmation message>"
+        }
+
+      2. If the user requests to add an expense, respond with:
+        {
+          "action": "add_expense",
+          "data": { "amount": <number>, "category": "<string>" },
+          "response": "<friendly confirmation message>"
+        }
+
+      3. For advice:
+        {
+          "action": "advice",
+          "response": "<personalized advice based on user's finances>"
+        }
+
+      4. For any other request:
+        {
+          "action": "unknown",
+          "response": "<friendly message explaining you can only assist with financial actions>"
+        }
+
+      Make sure that:
+      - "amount" is always a number
+      - The response is valid JSON
+      - Respond in English
+      - If the amount is missing, ask the user to provide it
+
+      User request: "${prompt}"
     `;
 
     const result = await model.generateContent(systemPrompt);
     const rawText = result.response.text();
+
     let parsedAction: ChatAction | null = null;
     let cleanJson = "";
 
     try {
-      // ამოვიღოთ Markdown-ის კოდი პასუხიდან
       const jsonStart = rawText.indexOf("{");
       const jsonEnd = rawText.lastIndexOf("}");
       if (jsonStart !== -1 && jsonEnd !== -1) {
@@ -96,18 +110,22 @@ export async function POST(request: NextRequest) {
         throw new Error("JSON not found in AI response.");
       }
 
-      if (!parsedAction) {
-        throw new Error("Failed to parse JSON.");
-      }
+      if (!parsedAction) throw new Error("Failed to parse JSON.");
 
       if (parsedAction.action === "add_income") {
-        const { amount, source } = parsedAction.data!;
+        const { amount, source } = parsedAction.data || {};
+        if (amount === undefined || !source) {
+          return NextResponse.json(
+            {
+              action: "unknown",
+              message:
+                "შემოსავლის დამატება ვერ მოხერხდა. თანხა ან წყარო არასრულია.",
+            },
+            { status: 200 }
+          );
+        }
         await prisma.income.create({
-          data: {
-            amount,
-            source: source!,
-            userId: payload.userId as string,
-          },
+          data: { amount, source, userId },
         });
         return NextResponse.json(
           {
@@ -117,14 +135,22 @@ export async function POST(request: NextRequest) {
           },
           { status: 200 }
         );
-      } else if (parsedAction.action === "add_expense") {
-        const { amount, category } = parsedAction.data!;
+      }
+
+      if (parsedAction.action === "add_expense") {
+        const { amount, category } = parsedAction.data || {};
+        if (amount === undefined || !category) {
+          return NextResponse.json(
+            {
+              action: "unknown",
+              message:
+                "ხარჯის დამატება ვერ მოხერხდა. თანხა ან კატეგორია არასრულია.",
+            },
+            { status: 200 }
+          );
+        }
         await prisma.expense.create({
-          data: {
-            amount,
-            category: category!,
-            userId: payload.userId as string,
-          },
+          data: { amount, category, userId },
         });
         return NextResponse.json(
           {
@@ -134,12 +160,19 @@ export async function POST(request: NextRequest) {
           },
           { status: 200 }
         );
-      } else if (parsedAction.action === "unknown") {
+      }
+
+      if (parsedAction.action === "advice") {
         return NextResponse.json(
           { action: parsedAction.action, message: parsedAction.response },
           { status: 200 }
         );
       }
+
+      return NextResponse.json(
+        { action: "unknown", message: parsedAction.response },
+        { status: 200 }
+      );
     } catch (parseError) {
       console.error(
         "Failed to parse AI response as JSON:",
@@ -155,20 +188,17 @@ export async function POST(request: NextRequest) {
         { status: 200 }
       );
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error("Chat API failed:", error);
+    if (error.status === 429) {
+      return NextResponse.json(
+        { error: "API rate limit exceeded. Please try again later." },
+        { status: 429 }
+      );
+    }
     return NextResponse.json(
       { error: "Internal Server Error" },
       { status: 500 }
     );
   }
-
-  return NextResponse.json(
-    {
-      action: "unknown",
-      message:
-        "ბოდიში, მაგრამ ვერ გავიგე თქვენი მოთხოვნა. სცადეთ უფრო კონკრეტული იყოთ.",
-    },
-    { status: 200 }
-  );
 }

@@ -7,6 +7,7 @@ import Sidebar from "./components/Sidebar";
 import StatsCard from "./components/StackCard";
 import RecentTransactions from "./components/RecentTransactions";
 import ExpenseChart from "./components/ExpenseChart";
+import Loader from "./components/Loader";
 
 // მონაცემთა ტიპების განსაზღვრა
 interface Income {
@@ -25,46 +26,43 @@ interface Expense {
 
 const DashboardPage = () => {
   const router = useRouter();
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
   const [incomes, setIncomes] = useState<Income[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [userName, setUserName] = useState("");
 
-  // მონაცემების წამოღების ფუნქცია
-  const fetchFinancialData = async (token: string) => {
+  // მონაცემების წამოღება cookie-ს გამოყენებით
+  const fetchFinancialData = async () => {
     try {
-      const incomeRes = await fetch("/api/income", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      const expenseRes = await fetch("/api/expence", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const [incomeRes, expenseRes, userRes] = await Promise.all([
+        fetch("/api/income", { credentials: "include" }),
+        fetch("/api/expence", { credentials: "include" }),
+        fetch("/api/user", { credentials: "include" }),
+      ]);
 
-      if (incomeRes.ok && expenseRes.ok) {
+      if (incomeRes.ok && expenseRes.ok && userRes.ok) {
         const incomeData = await incomeRes.json();
         const expenseData = await expenseRes.json();
+        const userData = await userRes.json();
+
         setIncomes(incomeData);
         setExpenses(expenseData);
+        setUserName(userData.name || userData.email.split("@")[0]);
+      } else {
+        // თუ cookie ვადexpiredა ან მომხმარებელი არაა ავტორიზებული
+        router.push("/login");
       }
     } catch (error) {
-      console.error("Failed to fetch financial data:", error);
+      console.error("Failed to fetch data:", error);
+      router.push("/login");
+    } finally {
+      setLoading(false);
     }
   };
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      router.push("/login");
-    } else {
-      setIsAuthenticated(true);
-      fetchFinancialData(token);
-    }
-    setLoading(false);
-  }, [router]);
+    fetchFinancialData();
+  }, []);
 
   // სტატისტიკის გამოთვლა
   const totalIncome = incomes.reduce((sum, income) => sum + income.amount, 0);
@@ -74,18 +72,6 @@ const DashboardPage = () => {
   );
   const balance = totalIncome - totalExpense;
 
-  if (loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <p>იტვირთება...</p>
-      </div>
-    );
-  }
-
-  if (!isAuthenticated) {
-    return null;
-  }
-
   // ახალი ფუნქციები, რომლებიც გადაეცემა props-ის სახით
   const handleAddIncomeClick = () => {
     router.push("/dashboard/income");
@@ -94,59 +80,51 @@ const DashboardPage = () => {
     router.push("/dashboard/expense");
   };
 
-  if (loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <p>იტვირთება...</p>
-      </div>
-    );
-  }
-
-  if (!isAuthenticated) {
-    return null;
-  }
-
   return (
     <div className="flex flex-col min-h-screen">
       <Header />
       <div className="flex flex-1 flex-col sm:flex-row">
         <Sidebar />
-        <div className="flex-1 border  w-full p-8 bg-gray-100 dark:bg-gray-950">
+        <div className="flex-1 border w-full p-8 bg-gray-100 dark:bg-gray-950">
           <header className="mb-8">
-            <h1 className="text-4xl font-bold">მთავარი დაფა</h1>
-            <p className="text-gray-600">
-              კეთილი იყოს თქვენი მობრძანება, მომხმარებელო
-            </p>
+            <h1 className="text-4xl font-bold">Main Board</h1>
+            <p className="text-gray-600">Welcome, {userName}</p>
           </header>
+          {loading ? (
+            <div className="flex justify-center items-center h-[calc(100vh-200px)]">
+              <Loader />
+            </div>
+          ) : (
+            <>
+              <section className="grid w-full gap-4 md:grid-cols-2 lg:grid-cols-3 mb-8">
+                <StatsCard
+                  title="Monthly Balance"
+                  value={`${balance} $`}
+                  description="Last 30 Days"
+                />
+                <StatsCard
+                  title="Total Income"
+                  value={`${totalIncome} $`}
+                  description="Last 30 Days"
+                />
+                <StatsCard
+                  title="Total Expenses"
+                  value={`${totalExpense} $`}
+                  description="Last 30 Days"
+                />
+              </section>
 
-          <section className="grid w-full gap-4 md:grid-cols-2 lg:grid-cols-3 mb-8">
-            <StatsCard
-              title="თვიური ბალანსი"
-              value={`${balance} ლარი`}
-              description="ბოლო 30 დღეში"
-            />
-            <StatsCard
-              title="მთლიანი შემოსავალი"
-              value={`${totalIncome} ლარი`}
-              description="ბოლო 30 დღეში"
-            />
-            <StatsCard
-              title="მთლიანი ხარჯი"
-              value={`${totalExpense} ლარი`}
-              description="ბოლო 30 დღეში"
-            />
-          </section>
-
-          <section className="dd_ert flex flex-col  gap-4 lg:grid-cols-2">
-            {/* აქ გადავცემთ დინამიურ მონაცემებს */}
-            <RecentTransactions
-              onAddIncomeClick={handleAddIncomeClick} // ახალი ფუნქცია
-              onAddExpenseClick={handleAddExpenseClick} // ახალი ფუნქცია
-              incomes={incomes}
-              expenses={expenses}
-            />
-            <ExpenseChart expenses={expenses} />
-          </section>
+              <section className="dd_ert flex flex-col gap-4 lg:grid-cols-2">
+                <RecentTransactions
+                  onAddIncomeClick={handleAddIncomeClick}
+                  onAddExpenseClick={handleAddExpenseClick}
+                  incomes={incomes}
+                  expenses={expenses}
+                />
+                <ExpenseChart expenses={expenses} />
+              </section>
+            </>
+          )}
         </div>
       </div>
     </div>

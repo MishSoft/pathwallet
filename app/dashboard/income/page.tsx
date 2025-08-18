@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import AddIncomeModal from "./components/AddIncomeModal";
+import Loader from "../components/Loader";
 
 interface Income {
   id: string;
@@ -25,30 +26,28 @@ interface Income {
 
 const IncomePage = () => {
   const router = useRouter();
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
   const [incomes, setIncomes] = useState<Income[]>([]);
 
-  const fetchIncomes = async (token: string) => {
+  const fetchIncomes = async () => {
     setLoading(true);
     try {
       const response = await fetch("/api/income", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        credentials: "include", // cookie-based ავტორიზაციისთვის
       });
 
       if (response.ok) {
         const data: Income[] = await response.json();
         setIncomes(data);
       } else if (response.status === 401) {
-        localStorage.removeItem("token");
         router.push("/login");
       } else {
         throw new Error("Failed to fetch incomes.");
       }
-    } catch (error) {
-      console.error("Failed to fetch incomes:", error);
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        console.error("Failed to fetch incomes:", error.message);
+      }
     } finally {
       setLoading(false);
     }
@@ -58,98 +57,76 @@ const IncomePage = () => {
     source: string;
     amount: number;
   }) => {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      router.push("/login");
-      return;
-    }
-
+    setLoading(true);
     try {
       const response = await fetch("/api/income", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`, // სწორი ფორმატი
-        },
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify(newIncome),
       });
 
       if (response.ok) {
-        await fetchIncomes(token);
+        await fetchIncomes();
       } else if (response.status === 401) {
-        localStorage.removeItem("token");
         router.push("/login");
       } else {
         const errorData = await response.json();
         throw new Error(errorData.error || "Failed to add income.");
       }
-    } catch (error) {
-      console.error("Failed to add income:", error);
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        console.error("Failed to add income:", error.message);
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleDeleteIncome = async (id: string) => {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      router.push("/login");
-      return;
-    }
-
+    setLoading(true);
     try {
       const response = await fetch("/api/income", {
         method: "DELETE",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`, // სწორი ფორმატი
-        },
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ id }),
       });
 
       if (response.ok) {
-        await fetchIncomes(token);
+        await fetchIncomes();
       } else if (response.status === 401) {
-        localStorage.removeItem("token");
         router.push("/login");
       } else {
         const errorData = await response.json();
         throw new Error(errorData.error || "Failed to delete income.");
       }
-    } catch (error) {
-      console.error("Failed to delete income:", error);
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        console.error("Failed to delete income:", error.message);
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      router.push("/login");
-    } else {
-      setIsAuthenticated(true);
-      fetchIncomes(token);
-    }
-  }, [router]);
+    fetchIncomes();
+  }, []);
 
   if (loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <p>იტვირთება...</p>
-      </div>
-    );
-  }
-
-  if (!isAuthenticated) {
-    return null;
+    return <Loader />;
   }
 
   return (
-    <div className="flex  flex-col min-h-screen">
+    <div className="flex flex-col min-h-screen">
       <Header />
       <div className="flex flex-1 flex-col sm:flex-row">
         <Sidebar />
         <div className="flex-1 w-full p-8 bg-gray-100 dark:bg-gray-950">
           <Card>
             <CardHeader className="flex md:flex-row md:items-center flex-col justify-between">
-              <CardTitle className="text-3xl font-bold">შემოსავლები</CardTitle>
+              <CardTitle className="text-3xl font-bold">Income</CardTitle>
               <AddIncomeModal onAddIncome={handleAddIncome} />
             </CardHeader>
             <CardContent>
@@ -158,10 +135,10 @@ const IncomePage = () => {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>წყარო</TableHead>
-                        <TableHead>თანხა</TableHead>
-                        <TableHead>თარიღი</TableHead>
-                        <TableHead>მოქმედება</TableHead>
+                        <TableHead>Source</TableHead>
+                        <TableHead>Amount</TableHead>
+                        <TableHead>Date</TableHead>
+                        <TableHead>Action</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -178,7 +155,7 @@ const IncomePage = () => {
                               size="sm"
                               onClick={() => handleDeleteIncome(income.id)}
                             >
-                              წაშლა
+                              Delete
                             </Button>
                           </TableCell>
                         </TableRow>
@@ -188,7 +165,7 @@ const IncomePage = () => {
                 </div>
               ) : (
                 <div className="text-center py-8 text-gray-500">
-                  <p>ჯერ არ გაქვთ დამატებული შემოსავალი.</p>
+                  <p>You haven&apos;t added any income yet.</p>
                 </div>
               )}
             </CardContent>

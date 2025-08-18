@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import React, { useEffect, useState } from "react";
@@ -24,48 +23,47 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 
+interface User {
+  name: string;
+  email: string;
+}
+
 const SettingsPage = () => {
   const router = useRouter();
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState<{ name: string; email: string } | null>(
-    null
-  );
+  const [user, setUser] = useState<User | null>(null);
   const [profileError, setProfileError] = useState("");
   const [passwordError, setPasswordError] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const fetchUser = async (token: string) => {
+  const fetchUser = async () => {
     try {
-      const response = await fetch("/api/user", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const response = await fetch("/api/user", { credentials: "include" });
       if (response.ok) {
-        const userData = await response.json();
+        const userData: User = await response.json();
         setUser(userData);
+      } else if (response.status === 401) {
+        router.push("/login");
       } else {
         throw new Error("Failed to fetch user data.");
       }
-    } catch (error) {
-      console.error(error);
+    } catch (error: unknown) {
+      if (error instanceof Error) console.error(error.message);
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     setProfileError("");
-    const token = localStorage.getItem("token");
-    if (!token || !user) return;
+    if (!user) return;
 
     try {
       const response = await fetch("/api/user", {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ name: user.name, email: user.email }),
       });
 
@@ -75,28 +73,28 @@ const SettingsPage = () => {
         const errorData = await response.json();
         throw new Error(errorData.error || "პროფილის განახლება ვერ მოხერხდა.");
       }
-    } catch (err: any) {
-      setProfileError(err.message);
+    } catch (error: unknown) {
+      if (error instanceof Error) setProfileError(error.message);
     }
   };
 
-  const handleChangePassword = async (e: React.FormEvent) => {
+  const handleChangePassword = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setPasswordError("");
-    const token = localStorage.getItem("token");
-    if (!token) return;
 
-    const form = e.target as HTMLFormElement;
-    const currentPassword = form["current-password"].value;
-    const newPassword = form["new-password"].value;
+    const form = e.currentTarget;
+    const currentPassword = (
+      form.elements.namedItem("current-password") as HTMLInputElement
+    ).value;
+    const newPassword = (
+      form.elements.namedItem("new-password") as HTMLInputElement
+    ).value;
 
     try {
       const response = await fetch("/api/user", {
         method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ currentPassword, newPassword }),
       });
 
@@ -107,123 +105,105 @@ const SettingsPage = () => {
         const errorData = await response.json();
         throw new Error(errorData.error || "პაროლის შეცვლა ვერ მოხერხდა.");
       }
-    } catch (err: any) {
-      setPasswordError(err.message);
+    } catch (error: unknown) {
+      if (error instanceof Error) setPasswordError(error.message);
     }
   };
 
   const handleDeleteAccount = async () => {
     setIsDeleting(true);
-    const token = localStorage.getItem("token");
-    if (!token) return;
-
     try {
       const response = await fetch("/api/user", {
         method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        credentials: "include",
       });
 
       if (response.ok) {
-        localStorage.removeItem("token");
+        // JWT cookie–ს წაშლა
+        document.cookie = "token=; path=/; max-age=0";
+
+        // შემდეგ რედირექცია
         router.push("/login");
       } else {
         const errorData = await response.json();
         throw new Error(errorData.error || "ანგარიშის გაუქმება ვერ მოხერხდა.");
       }
-    } catch (error) {
-      console.error(error);
-      if (error instanceof Error) {
-        alert(error.message);
-      }
+    } catch (error: unknown) {
+      if (error instanceof Error) alert(error.message);
     } finally {
       setIsDeleting(false);
     }
   };
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      router.push("/login");
-    } else {
-      setIsAuthenticated(true);
-      fetchUser(token);
-    }
-    setLoading(false);
-  }, [router]);
+    fetchUser();
+  }, []);
 
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <p>იტვირთება...</p>
+        <p>Loading...</p>
       </div>
     );
   }
 
-  if (!isAuthenticated) {
-    return null;
-  }
+  if (!user) return null;
 
   return (
     <div className="flex flex-col min-h-screen">
       <Header />
       <div className="flex flex-1 flex-col sm:flex-row">
         <Sidebar />
-        <div className="flex-1 p-8 bg-gray-100 dark:bg-gray-950 ">
-          <h1 className="text-4xl font-bold mb-6">პარამეტრები</h1>
+        <div className="flex-1 p-8 bg-gray-100 dark:bg-gray-950">
+          <h1 className="text-4xl font-bold mb-6">Settings</h1>
 
           <div className="grid gap-6">
+            {/* Update Profile */}
             <Card>
               <CardHeader>
-                <CardTitle>პროფილის განახლება</CardTitle>
+                <CardTitle>Update Profile</CardTitle>
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleUpdateProfile} className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="name">სახელი</Label>
+                    <Label htmlFor="name">Name</Label>
                     <Input
                       id="name"
                       type="text"
-                      placeholder="თქვენი სახელი"
-                      value={user?.name || ""}
+                      value={user.name}
                       onChange={(e) =>
-                        setUser((prev) =>
-                          prev ? { ...prev, name: e.target.value } : null
-                        )
+                        setUser({ ...user, name: e.target.value })
                       }
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="email">ელფოსტა</Label>
+                    <Label htmlFor="email">Email</Label>
                     <Input
                       id="email"
                       type="email"
-                      placeholder="example@email.com"
-                      value={user?.email || ""}
+                      value={user.email}
                       onChange={(e) =>
-                        setUser((prev) =>
-                          prev ? { ...prev, email: e.target.value } : null
-                        )
+                        setUser({ ...user, email: e.target.value })
                       }
                     />
                   </div>
                   {profileError && (
                     <p className="text-sm text-red-500">{profileError}</p>
                   )}
-                  <Button type="submit">შენახვა</Button>
+                  <Button type="submit">Save</Button>
                 </form>
               </CardContent>
             </Card>
 
+            {/* Change Password */}
             <Card>
               <CardHeader>
-                <CardTitle>პაროლის შეცვლა</CardTitle>
+                <CardTitle>Change Password</CardTitle>
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleChangePassword} className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="current-password">მიმდინარე პაროლი</Label>
+                    <Label htmlFor="current-password">Current Password</Label>
                     <Input
                       id="current-password"
                       name="current-password"
@@ -232,7 +212,7 @@ const SettingsPage = () => {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="new-password">ახალი პაროლი</Label>
+                    <Label htmlFor="new-password">New Password</Label>
                     <Input
                       id="new-password"
                       name="new-password"
@@ -243,42 +223,40 @@ const SettingsPage = () => {
                   {passwordError && (
                     <p className="text-sm text-red-500">{passwordError}</p>
                   )}
-                  <Button type="submit">პაროლის შეცვლა</Button>
+                  <Button type="submit">Update Password</Button>
                 </form>
               </CardContent>
             </Card>
 
+            {/* Delete Account */}
             <Card>
               <CardHeader>
-                <CardTitle>ანგარიშის გაუქმება</CardTitle>
+                <CardTitle>Delete Account</CardTitle>
                 <CardDescription>
-                  თქვენი ანგარიშის გაუქმება წაშლის ყველა მონაცემს სამუდამოდ.
+                  Deleting your account will permanently erase all your data.
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <Dialog>
                   <DialogTrigger asChild>
-                    <Button variant="destructive">ანგარიშის გაუქმება</Button>
+                    <Button variant="destructive">Delete Account</Button>
                   </DialogTrigger>
                   <DialogContent>
                     <DialogHeader>
-                      <DialogTitle>დარწმუნებული ხართ?</DialogTitle>
+                      <DialogTitle>Are you sure?</DialogTitle>
                       <DialogDescription>
-                        თქვენი ანგარიშის გაუქმება სამუდამოდ წაშლის თქვენს ყველა
-                        ფინანსურ მონაცემს. ამ მოქმედების უკან დაბრუნება
-                        შეუძლებელია.
+                        Deleting your account will permanently erase all your
+                        financial data. This action cannot be undone.
                       </DialogDescription>
                     </DialogHeader>
                     <div className="flex justify-end gap-2">
-                      <Button variant="outline">გაუქმება</Button>
+                      <Button variant="outline">Cancel</Button>
                       <Button
                         variant="destructive"
                         onClick={handleDeleteAccount}
                         disabled={isDeleting}
                       >
-                        {isDeleting
-                          ? "იგზავნება..."
-                          : "დიახ, ანგარიშის გაუქმება"}
+                        {isDeleting ? "Deleting..." : "Yes, delete account"}
                       </Button>
                     </div>
                   </DialogContent>

@@ -1,5 +1,3 @@
-// src/components/layout/Header.tsx
-
 "use client";
 
 import React from "react";
@@ -11,9 +9,14 @@ import { MessageSquare } from "lucide-react"; // AI იკონი
 const Header = () => {
   const router = useRouter();
 
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    router.push("/login");
+  const handleLogout = async () => {
+    try {
+      // გამოგზავნეთ request, რომელიც server-ზე წაშლის cookie-ს
+      await fetch("/api/logout", { method: "POST", credentials: "include" });
+      router.push("/login");
+    } catch (error) {
+      console.error("Logout failed:", error);
+    }
   };
 
   return (
@@ -28,7 +31,7 @@ const Header = () => {
           </Button>
         </Link>
         <Button variant="ghost" onClick={handleLogout}>
-          გამოსვლა
+          Log out
         </Button>
       </div>
     </header>

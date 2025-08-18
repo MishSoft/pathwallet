@@ -1,16 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyJWT } from "@/app/lib/auth";
 import { PrismaClient } from "@prisma/client";
+import { JWTPayload } from "jose";
 
 const prisma = new PrismaClient();
+
+// ჩვენი საკუთარი payload ტიპი
+type MyJWTPayload = JWTPayload & { userId: string };
 
 // ახალი მიზნის დამატება
 export async function POST(request: NextRequest) {
   const payload = await verifyJWT(request);
 
   if (payload instanceof NextResponse) {
-    return payload;
+    return payload; // აქ უკვე error response
   }
+
+  // ვაკონვერტებთ ჩვენს custom ტიპზე
+  const userPayload = payload as unknown as MyJWTPayload;
 
   try {
     const { title, targetAmount } = await request.json();
@@ -26,7 +33,7 @@ export async function POST(request: NextRequest) {
       data: {
         title,
         targetAmount: Number(targetAmount),
-        userId: payload.userId as string,
+        userId: userPayload.userId, // აქ typescript-ი აღარ წუწუნებს
       },
     });
 
@@ -48,54 +55,16 @@ export async function GET(request: NextRequest) {
     return payload;
   }
 
+  const userPayload = payload as unknown as MyJWTPayload;
+
   try {
     const goals = await prisma.financialGoal.findMany({
-      where: {
-        userId: payload.userId as string,
-      },
-      orderBy: {
-        createdAt: "desc", // ეს ხაზი მუშაობს მხოლოდ მას შემდეგ, რაც მიგრაციას გაუშვებთ
-      },
+      where: { userId: userPayload.userId },
     });
 
     return NextResponse.json(goals, { status: 200 });
   } catch (error) {
-    console.error("Failed to get goals:", error);
-    return NextResponse.json(
-      { error: "Internal Server Error" },
-      { status: 500 }
-    );
-  }
-}
-
-// მიზნის წაშლა
-export async function DELETE(request: NextRequest) {
-  const payload = await verifyJWT(request);
-
-  if (payload instanceof NextResponse) {
-    return payload;
-  }
-
-  try {
-    const { id } = await request.json();
-
-    if (!id) {
-      return NextResponse.json(
-        { error: "Goal ID is required." },
-        { status: 400 }
-      );
-    }
-
-    const deletedGoal = await prisma.financialGoal.delete({
-      where: {
-        id,
-        userId: payload.userId as string,
-      },
-    });
-
-    return NextResponse.json(deletedGoal, { status: 200 });
-  } catch (error) {
-    console.error("Failed to delete goal:", error);
+    console.error("Failed to fetch goals:", error);
     return NextResponse.json(
       { error: "Internal Server Error" },
       { status: 500 }

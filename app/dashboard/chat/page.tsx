@@ -14,16 +14,44 @@ import { MessageSquare, Send } from "lucide-react";
 interface ChatMessage {
   text: string;
   sender: "user" | "ai";
-  action?: "add_income" | "add_expense";
-  data?: any; // აქ იქნება მონაცემები მოქმედებისთვის
+  action?: "add_income" | "add_expense" | "advice" | "unknown";
+  data?: Record<string, unknown>;
 }
 
 const ChatPage = () => {
   const router = useRouter();
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
+
+  // ჩატის ისტორიის წამოღება localStorage-დან
+  useEffect(() => {
+    const storedMessages = localStorage.getItem("chatHistory");
+    if (storedMessages) {
+      setMessages(JSON.parse(storedMessages));
+    }
+  }, []);
+
+  // ჩატის ისტორიის შენახვა localStorage-ში
+  useEffect(() => {
+    if (messages.length > 0) {
+      localStorage.setItem("chatHistory", JSON.stringify(messages));
+    }
+  }, [messages]);
+
+  // browser-ის beforeunload hook
+  useEffect(() => {
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (messages.length > 0) {
+        event.preventDefault();
+        event.returnValue = "";
+      }
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, [messages]);
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,15 +63,12 @@ const ChatPage = () => {
     setLoading(true);
 
     try {
-      const token = localStorage.getItem("token");
-      if (!token) return;
-
       const response = await fetch("/api/chat", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
+        credentials: "include", // აქ გამოიყენება cookie ავტორიზაციისთვის
         body: JSON.stringify({ prompt: input }),
       });
 
@@ -58,7 +83,7 @@ const ChatPage = () => {
         setMessages((prev) => [...prev, aiMessage]);
       } else {
         const errorData = await response.json();
-        throw new Error(errorData.error || "პასუხის მიღება ვერ მოხერხდა.");
+        throw new Error(errorData.error || "Failed to receive a response.");
       }
     } catch (error: any) {
       const errorMessage: ChatMessage = { text: error.message, sender: "ai" };
@@ -68,76 +93,30 @@ const ChatPage = () => {
     }
   };
 
-  const handleExecuteAction = async (message: ChatMessage) => {
-    // აქ შესრულდება ბეკენდის მოქმედება
-    if (!message.action || !message.data) return;
-
-    const token = localStorage.getItem("token");
-    if (!token) return;
-
-    if (message.action === "add_income") {
-      try {
-        const response = await fetch("/api/income", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify(message.data),
-        });
-
-        if (response.ok) {
-          const successMessage: ChatMessage = {
-            text: "შემოსავალი წარმატებით დაემატა!",
-            sender: "ai",
-          };
-          setMessages((prev) => [...prev, successMessage]);
-        } else {
-          throw new Error("მოქმედება ვერ შესრულდა.");
-        }
-      } catch (error: any) {
-        const errorMessage: ChatMessage = { text: error.message, sender: "ai" };
-        setMessages((prev) => [...prev, errorMessage]);
-      }
+  const handleClearChat = () => {
+    if (window.confirm("Are you sure you want to end the conversation?")) {
+      localStorage.removeItem("chatHistory");
+      setMessages([]);
     }
   };
-
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      router.push("/login");
-    } else {
-      setIsAuthenticated(true);
-    }
-    setLoading(false);
-  }, [router]);
-
-  if (loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <p>იტვირთება...</p>
-      </div>
-    );
-  }
-
-  if (!isAuthenticated) {
-    return null;
-  }
 
   return (
     <div className="flex flex-col min-h-screen">
       <Header />
       <div className="flex flex-1 flex-col sm:flex-row">
         <Sidebar />
-        <div className="flex-1 p-8 bg-gray-100 dark:bg-gray-950 ">
+        <div className="flex-1 p-8 bg-gray-100 dark:bg-gray-950">
           <Card className="flex flex-col h-[80vh]">
-            <CardHeader>
+            <CardHeader className="flex-row items-center justify-between">
               <CardTitle className="flex items-center gap-2">
                 <MessageSquare className="h-6 w-6" />
-                <span>AI ასისტენტი</span>
+                <span>AI Assistant</span>
               </CardTitle>
+              <Button variant="outline" onClick={handleClearChat}>
+                End Conversation
+              </Button>
             </CardHeader>
-            <CardContent className="flex-1 p-4 flex flex-col justify-between">
+            <CardContent className="flex-1 overflow-auto p-4 flex flex-col justify-between">
               <ScrollArea className="flex-1 pr-4 mb-4">
                 {messages.map((msg, index) => (
                   <div
@@ -160,24 +139,24 @@ const ChatPage = () => {
                 {loading && (
                   <div className="flex justify-start">
                     <div className="p-2 rounded-lg max-w-[75%] mb-2 bg-gray-200 dark:bg-gray-700 text-black dark:text-white">
-                      იტვირთება...
+                      Loading...
                     </div>
                   </div>
                 )}
               </ScrollArea>
-              <form onSubmit={handleSendMessage} className="flex gap-2">
-                <Input
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  placeholder="დასვით შეკითხვა..."
-                  className="flex-1"
-                  disabled={loading}
-                />
-                <Button type="submit" disabled={loading} size="icon">
-                  <Send className="h-4 w-4" />
-                </Button>
-              </form>
             </CardContent>
+            <form onSubmit={handleSendMessage} className="flex p-2 gap-2">
+              <Input
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                placeholder="Type your question…"
+                className="flex-1"
+                disabled={loading}
+              />
+              <Button type="submit" disabled={loading} size="icon">
+                <Send className="h-4 w-4" />
+              </Button>
+            </form>
           </Card>
         </div>
       </div>

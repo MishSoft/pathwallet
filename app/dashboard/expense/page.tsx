@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import AddExpenseModal from "./components/AddExpenseModal";
+import Loader from "../components/Loader";
 
 // მონაცემთა ტიპების განსაზღვრა
 interface Expense {
@@ -26,36 +27,28 @@ interface Expense {
 
 const ExpensesPage = () => {
   const router = useRouter();
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
   const [expenses, setExpenses] = useState<Expense[]>([]);
 
   const fetchExpenses = async () => {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      router.push("/login");
-      return;
-    }
-
     setLoading(true);
     try {
       const response = await fetch("/api/expence", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        credentials: "include", // cookie ავტორიზაციისთვის
       });
 
       if (response.ok) {
         const data: Expense[] = await response.json();
         setExpenses(data);
       } else if (response.status === 401) {
-        localStorage.removeItem("token");
         router.push("/login");
       } else {
         throw new Error("Failed to fetch expenses.");
       }
-    } catch (error) {
-      console.error("Failed to fetch expenses:", error);
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        console.error("Failed to fetch expenses:", error.message);
+      }
     } finally {
       setLoading(false);
     }
@@ -65,88 +58,69 @@ const ExpensesPage = () => {
     category: string;
     amount: number;
   }) => {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      router.push("/login");
-      return;
-    }
-
+    setLoading(true);
     try {
       const response = await fetch("/api/expence", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
+        credentials: "include",
         body: JSON.stringify(newExpense),
       });
 
       if (response.ok) {
         await fetchExpenses();
-        console.log(fetchExpenses());
       } else if (response.status === 401) {
-        localStorage.removeItem("token");
         router.push("/login");
       } else {
         const errorData = await response.json();
         throw new Error(errorData.error || "Failed to add expense.");
       }
-    } catch (error) {
-      console.error("Failed to add expense:", error);
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        console.error("Failed to add expense:", error.message);
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleDeleteExpense = async (id: string) => {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      router.push("/login");
-      return;
-    }
-
+    setLoading(true);
     try {
-      const response = await fetch("/api/expense", {
+      const response = await fetch("/api/expence", {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
+        credentials: "include",
         body: JSON.stringify({ id }),
       });
 
       if (response.ok) {
         await fetchExpenses();
       } else if (response.status === 401) {
-        localStorage.removeItem("token");
         router.push("/login");
       } else {
         const errorData = await response.json();
         throw new Error(errorData.error || "Failed to delete expense.");
       }
-    } catch (error) {
-      console.error("Failed to delete expense:", error);
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        console.error("Failed to delete expense:", error.message);
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      router.push("/login");
-    } else {
-      setIsAuthenticated(true);
-      fetchExpenses();
-    }
-  }, [router]);
+    fetchExpenses();
+  }, []);
 
   if (loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <p>იტვირთება...</p>
-      </div>
-    );
-  }
-
-  if (!isAuthenticated) {
-    return null;
+    return <Loader />;
   }
 
   return (
@@ -157,7 +131,7 @@ const ExpensesPage = () => {
         <div className="flex-1 p-8 w-full bg-gray-100 dark:bg-gray-950">
           <Card>
             <CardHeader className="flex md:flex-row flex-col md:items-center justify-between">
-              <CardTitle className="text-3xl font-bold">ხარჯები</CardTitle>
+              <CardTitle className="text-3xl font-bold">Expenses</CardTitle>
               <AddExpenseModal onAddExpense={handleAddExpense} />
             </CardHeader>
             <CardContent>
@@ -166,17 +140,17 @@ const ExpensesPage = () => {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>კატეგორია</TableHead>
-                        <TableHead>თანხა</TableHead>
-                        <TableHead>თარიღი</TableHead>
-                        <TableHead>მოქმედება</TableHead>
+                        <TableHead>Category</TableHead>
+                        <TableHead>Amount</TableHead>
+                        <TableHead>Date</TableHead>
+                        <TableHead>Action</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {expenses.map((expense) => (
                         <TableRow key={expense.id}>
                           <TableCell>{expense.category}</TableCell>
-                          <TableCell>{expense.amount} ლარი</TableCell>
+                          <TableCell>{expense.amount} $</TableCell>
                           <TableCell>
                             {new Date(expense.date).toLocaleDateString()}
                           </TableCell>
@@ -196,7 +170,7 @@ const ExpensesPage = () => {
                 </div>
               ) : (
                 <div className="text-center py-8 text-gray-500">
-                  <p>ჯერ არ გაქვთ დამატებული ხარჯი.</p>
+                  <p>You haven&apos;t added any expenses yet..</p>
                 </div>
               )}
             </CardContent>

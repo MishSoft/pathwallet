@@ -34,15 +34,15 @@ const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ onAddExpense }) => {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button>ახალი ხარჯის დამატება</Button>
+        <Button>Add New Expense</Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>ახალი ხარჯის დამატება</DialogTitle>
+          <DialogTitle>Add New Expense</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="category">კატეგორია</Label>
+            <Label htmlFor="category">Category</Label>
             <Input
               id="category"
               value={category}
@@ -51,7 +51,7 @@ const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ onAddExpense }) => {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="amount">თანხა</Label>
+            <Label htmlFor="amount">Amount</Label>
             <Input
               id="amount"
               type="number"
@@ -61,7 +61,7 @@ const AddExpenseModal: React.FC<AddExpenseModalProps> = ({ onAddExpense }) => {
             />
           </div>
           <Button type="submit" className="w-full">
-            დამატება
+            Add
           </Button>
         </form>
       </DialogContent>

@@ -43,8 +43,8 @@ const ExpenseChart: React.FC<ExpenseChartProps> = ({ expenses }) => {
   return (
     <Card className="w-full">
       <CardHeader>
-        <CardTitle>ხარჯების განაწილება</CardTitle>
-        <CardDescription>თვიური ხარჯები კატეგორიის მიხედვით</CardDescription>
+        <CardTitle>Expense Distribution</CardTitle>
+        <CardDescription>Monthly Expenses by Category</CardDescription>
       </CardHeader>
       <CardContent className="h-[300px]  flex items-center justify-center ">
         {groupedData.length > 0 ? (
@@ -82,7 +82,9 @@ const ExpenseChart: React.FC<ExpenseChartProps> = ({ expenses }) => {
             </PieChart>
           </ResponsiveContainer>
         ) : (
-          <p className="text-center text-gray-500">ჯერ არ გაქვთ ხარჯები.</p>
+          <p className="text-center text-gray-500">
+            You don&lsquo;t have any expenses yet.
+          </p>
         )}
       </CardContent>
     </Card>

@@ -1,5 +1,3 @@
-// src/components/income/AddIncomeModal.tsx
-
 "use client";
 
 import React, { useState } from "react";
@@ -14,20 +12,22 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-interface AddIncomeModalProps {
-  onAddIncome: (income: { source: string; amount: number }) => void;
+interface AddSavingsModalProps {
+  goalId: string;
+  onAddSavings: (goalId: string, amount: number) => void;
 }
 
-const AddIncomeModal: React.FC<AddIncomeModalProps> = ({ onAddIncome }) => {
-  const [source, setSource] = useState("");
+const AddSavingsModal: React.FC<AddSavingsModalProps> = ({
+  goalId,
+  onAddSavings,
+}) => {
   const [amount, setAmount] = useState<number | string>("");
   const [open, setOpen] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (source && amount) {
-      onAddIncome({ source, amount: Number(amount) });
-      setSource("");
+    if (amount) {
+      onAddSavings(goalId, Number(amount));
       setAmount("");
       setOpen(false); // ფანჯრის დახურვა
     }
@@ -36,22 +36,15 @@ const AddIncomeModal: React.FC<AddIncomeModalProps> = ({ onAddIncome }) => {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button>Add New Income</Button>
+        <Button variant="outline" size="sm">
+          Add
+        </Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Add New Income</DialogTitle>
+          <DialogTitle>Add Amount</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="source">Source</Label>
-            <Input
-              id="source"
-              value={source}
-              onChange={(e) => setSource(e.target.value)}
-              required
-            />
-          </div>
           <div className="space-y-2">
             <Label htmlFor="amount">Amount</Label>
             <Input
@@ -71,4 +64,4 @@ const AddIncomeModal: React.FC<AddIncomeModalProps> = ({ onAddIncome }) => {
   );
 };
 
-export default AddIncomeModal;
+export default AddSavingsModal;

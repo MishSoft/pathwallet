@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import AddGoalModal from "./components/AddGoalModal";
+import Loader from "../components/Loader";
 
 // მონაცემთა ტიპების განსაზღვრა
 interface FinancialGoal {
@@ -20,36 +21,28 @@ interface FinancialGoal {
 
 const GoalsPage = () => {
   const router = useRouter();
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
   const [goals, setGoals] = useState<FinancialGoal[]>([]);
 
   const fetchGoals = async () => {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      router.push("/login");
-      return;
-    }
-
     setLoading(true);
     try {
       const response = await fetch("/api/goals", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        credentials: "include", // cookie ავტორიზაციისთვის
       });
 
       if (response.ok) {
         const data: FinancialGoal[] = await response.json();
         setGoals(data);
       } else if (response.status === 401) {
-        localStorage.removeItem("token");
         router.push("/login");
       } else {
         throw new Error("Failed to fetch goals.");
       }
-    } catch (error) {
-      console.error("Failed to fetch goals:", error);
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        console.error("Failed to fetch goals:", error.message);
+      }
     } finally {
       setLoading(false);
     }
@@ -59,81 +52,69 @@ const GoalsPage = () => {
     title: string;
     targetAmount: number;
   }) => {
-    const token = localStorage.getItem("token");
-    if (!token) return;
-
+    setLoading(true);
     try {
       const response = await fetch("/api/goals", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
+        credentials: "include",
         body: JSON.stringify(newGoal),
       });
 
       if (response.ok) {
         await fetchGoals();
       } else if (response.status === 401) {
-        localStorage.removeItem("token");
         router.push("/login");
       } else {
         const errorData = await response.json();
         throw new Error(errorData.error || "Failed to add goal.");
       }
-    } catch (error) {
-      console.error("Failed to add goal:", error);
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        console.error("Failed to add goal:", error.message);
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleDeleteGoal = async (id: string) => {
-    const token = localStorage.getItem("token");
-    if (!token) return;
-
+    setLoading(true);
     try {
       const response = await fetch("/api/goals", {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
+        credentials: "include",
         body: JSON.stringify({ id }),
       });
 
       if (response.ok) {
         await fetchGoals();
       } else if (response.status === 401) {
-        localStorage.removeItem("token");
         router.push("/login");
       } else {
         const errorData = await response.json();
         throw new Error(errorData.error || "Failed to delete goal.");
       }
-    } catch (error) {
-      console.error("Failed to delete goal:", error);
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        console.error("Failed to delete goal:", error.message);
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      router.push("/login");
-    } else {
-      setIsAuthenticated(true);
-      fetchGoals();
-    }
-  }, [router]);
+    fetchGoals();
+  }, []);
 
   if (loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <p>იტვირთება...</p>
-      </div>
-    );
-  }
-
-  if (!isAuthenticated) {
-    return null;
+    return <Loader />;
   }
 
   return (
@@ -144,7 +125,7 @@ const GoalsPage = () => {
         <div className="flex-1 w-full p-8 bg-gray-100 dark:bg-gray-950">
           <Card>
             <CardHeader className="flex flex-col md:flex-row md:items-center justify-between">
-              <CardTitle className="text-3xl font-bold">მიზნები</CardTitle>
+              <CardTitle className="text-3xl font-bold">Goals</CardTitle>
               <AddGoalModal onAddGoal={handleAddGoal} />
             </CardHeader>
             <CardContent>
@@ -159,8 +140,8 @@ const GoalsPage = () => {
                           <div>
                             <CardTitle>{goal.title}</CardTitle>
                             <p className="text-sm text-gray-500 mt-1">
-                              დაგროვილი: {goal.savedAmount} ლარი /{" "}
-                              {goal.targetAmount} ლარი
+                              Accumulated: {goal.savedAmount} $ /{" "}
+                              {goal.targetAmount} $
                             </p>
                           </div>
                           <Button
@@ -168,7 +149,7 @@ const GoalsPage = () => {
                             size="sm"
                             onClick={() => handleDeleteGoal(goal.id)}
                           >
-                            წაშლა
+                            Delete
                           </Button>
                         </CardHeader>
                         <CardContent>
@@ -179,7 +160,7 @@ const GoalsPage = () => {
                   })
                 ) : (
                   <div className="text-center py-8 text-gray-500">
-                    <p>ჯერ არ გაქვთ დამატებული მიზნები.</p>
+                    <p>You haven&apos;t added any goals yet.</p>
                   </div>
                 )}
               </div>

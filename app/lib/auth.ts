@@ -1,29 +1,37 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-import { jwtVerify, JWTPayload } from "jose";
+// /lib/auth.ts
 import { NextRequest, NextResponse } from "next/server";
+import jwt from "jsonwebtoken";
 
-// JWT_SECRET_KEY შეცვალეთ თქვენი უნიკალური გასაღებით
-const JWT_SECRET_KEY = process.env.JWT_SECRET_KEY;
+// შენობა, რომელსაც JWT-ს დიკოდირებისას ველოდებით
+interface DecodedToken {
+  userId: string;
+  email: string;
+  iat: number;
+  exp: number;
+}
 
 export async function verifyJWT(request: NextRequest) {
-  const token = request.headers.get("authorization")?.split(" ")[1];
+  // Cookie–დან token–ის მიღება
+  const token = request.cookies.get("token")?.value;
+  console.log("🔑 Received token:", token); // Debug: რა მიდის
 
   if (!token) {
-    return NextResponse.json(
-      { error: "Authorization token is missing." },
-      { status: 401 }
-    );
+    console.log("⛔ No token found in cookies");
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   try {
-    const verified = await jwtVerify(
+    // Token-ის დიკოდირება
+    const decoded = jwt.verify(
       token,
-      new TextEncoder().encode(JWT_SECRET_KEY)
-    );
-    return verified.payload;
-  } catch (error) {
+      process.env.JWT_SECRET_KEY!
+    ) as DecodedToken;
+    console.log("✅ Decoded JWT payload:", decoded); // Debug: თუ სწორია
+    return decoded; // დაბრუნდება object { userId, email, iat, exp }
+  } catch (err) {
+    console.log("❌ JWT verification failed:", err);
     return NextResponse.json(
-      { error: "Invalid or expired token." },
+      { error: "Invalid or expired token" },
       { status: 401 }
     );
   }

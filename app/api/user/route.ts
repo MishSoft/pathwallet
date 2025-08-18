@@ -1,3 +1,4 @@
+// /app/api/user/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { verifyJWT } from "@/app/lib/auth";
 import { PrismaClient } from "@prisma/client";
@@ -5,22 +6,15 @@ import bcrypt from "bcrypt";
 
 const prisma = new PrismaClient();
 
-// მომხმარებლის მონაცემების წამოღება (ახალი GET მეთოდი)
+// მომხმარებლის მონაცემების წამოღება
 export async function GET(request: NextRequest) {
   const payload = await verifyJWT(request);
-
-  if (payload instanceof NextResponse) {
-    return payload;
-  }
+  if (payload instanceof NextResponse) return payload;
 
   try {
     const user = await prisma.user.findUnique({
-      where: { id: payload.userId as string },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-      },
+      where: { id: payload.userId },
+      select: { id: true, name: true, email: true },
     });
 
     if (!user) {
@@ -29,7 +23,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(user, { status: 200 });
   } catch (error) {
-    console.error("Failed to fetch user data:", error);
+    console.error(error);
     return NextResponse.json(
       { error: "Internal Server Error" },
       { status: 500 }
@@ -37,20 +31,14 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// მომხმარებლის პროფილის განახლება
+// პროფილის განახლება
 export async function PUT(request: NextRequest) {
   const payload = await verifyJWT(request);
-
-  if (payload instanceof NextResponse) {
-    return payload;
-  }
+  if (payload instanceof NextResponse) return payload;
 
   try {
     const { name, email } = await request.json();
-
-    const existingUser = await prisma.user.findUnique({
-      where: { email },
-    });
+    const existingUser = await prisma.user.findUnique({ where: { email } });
 
     if (existingUser && existingUser.id !== payload.userId) {
       return NextResponse.json(
@@ -60,21 +48,14 @@ export async function PUT(request: NextRequest) {
     }
 
     const updatedUser = await prisma.user.update({
-      where: { id: payload.userId as string },
-      data: {
-        name,
-        email,
-      },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-      },
+      where: { id: payload.userId },
+      data: { name, email },
+      select: { id: true, name: true, email: true },
     });
 
     return NextResponse.json(updatedUser, { status: 200 });
   } catch (error) {
-    console.error("Failed to update user profile:", error);
+    console.error(error);
     return NextResponse.json(
       { error: "Internal Server Error" },
       { status: 500 }
@@ -82,19 +63,15 @@ export async function PUT(request: NextRequest) {
   }
 }
 
-// მომხმარებლის პაროლის შეცვლა
+// პაროლის შეცვლა
 export async function PATCH(request: NextRequest) {
   const payload = await verifyJWT(request);
-
-  if (payload instanceof NextResponse) {
-    return payload;
-  }
+  if (payload instanceof NextResponse) return payload;
 
   try {
     const { currentPassword, newPassword } = await request.json();
-
     const user = await prisma.user.findUnique({
-      where: { id: payload.userId as string },
+      where: { id: payload.userId },
     });
 
     if (!user) {
@@ -102,7 +79,6 @@ export async function PATCH(request: NextRequest) {
     }
 
     const passwordMatch = await bcrypt.compare(currentPassword, user.password);
-
     if (!passwordMatch) {
       return NextResponse.json(
         { error: "Invalid current password." },
@@ -111,22 +87,15 @@ export async function PATCH(request: NextRequest) {
     }
 
     const hashedPassword = await bcrypt.hash(newPassword, 10);
-
     const updatedUser = await prisma.user.update({
-      where: { id: payload.userId as string },
-      data: {
-        password: hashedPassword,
-      },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-      },
+      where: { id: payload.userId },
+      data: { password: hashedPassword },
+      select: { id: true, name: true, email: true },
     });
 
     return NextResponse.json(updatedUser, { status: 200 });
   } catch (error) {
-    console.error("Failed to change password:", error);
+    console.error(error);
     return NextResponse.json(
       { error: "Internal Server Error" },
       { status: 500 }
@@ -134,37 +103,33 @@ export async function PATCH(request: NextRequest) {
   }
 }
 
-
-// მომხმარებლის ანგარიშის წაშლა
+// ანგარიშის წაშლა
 export async function DELETE(request: NextRequest) {
   const payload = await verifyJWT(request);
-
-  if (payload instanceof NextResponse) {
-    return payload;
-  }
+  if (payload instanceof NextResponse) return payload;
 
   try {
-    const userId = payload.userId as string;
+    const userId = payload.userId;
 
-    // წაშლა ყველა შემოსავლის, ხარჯის და მიზნის
-    await prisma.income.deleteMany({
-      where: { userId },
-    });
-    await prisma.expense.deleteMany({
-      where: { userId },
-    });
-    await prisma.financialGoal.deleteMany({
-      where: { userId },
-    });
+    // ყველა დამოკიდებული მონაცემის წაშლა
+    await prisma.income.deleteMany({ where: { userId } });
+    await prisma.expense.deleteMany({ where: { userId } });
+    await prisma.financialGoal.deleteMany({ where: { userId } });
+    await prisma.user.delete({ where: { id: userId } });
 
-    // წაშლა თავად მომხმარებლის
-    const deletedUser = await prisma.user.delete({
-      where: { id: userId },
-    });
+    // Cookie-ის გასუფთავება
+    const response = NextResponse.json(
+      { message: "Account successfully deleted." },
+      { status: 200 }
+    );
+    response.cookies.set("token", "", { path: "/", expires: new Date(0) });
 
-    return NextResponse.json({ message: "Account successfully deleted." }, { status: 200 });
+    return response;
   } catch (error) {
-    console.error("Failed to delete account:", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    console.error(error);
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 }
+    );
   }
 }

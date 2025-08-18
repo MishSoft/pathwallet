@@ -34,15 +34,15 @@ const AddGoalModal: React.FC<AddGoalModalProps> = ({ onAddGoal }) => {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button>ახალი მიზნის დამატება</Button>
+        <Button>Add New Goal</Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>ახალი მიზნის დამატება</DialogTitle>
+          <DialogTitle>Add New Goal</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="title">მიზნის დასახელება</Label>
+            <Label htmlFor="title">Goal Name</Label>
             <Input
               id="title"
               value={title}
@@ -51,7 +51,7 @@ const AddGoalModal: React.FC<AddGoalModalProps> = ({ onAddGoal }) => {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="targetAmount">საჭირო თანხა</Label>
+            <Label htmlFor="targetAmount">Required Amount</Label>
             <Input
               id="targetAmount"
               type="number"
@@ -61,7 +61,7 @@ const AddGoalModal: React.FC<AddGoalModalProps> = ({ onAddGoal }) => {
             />
           </div>
           <Button type="submit" className="w-full">
-            დამატება
+            Add
           </Button>
         </form>
       </DialogContent>

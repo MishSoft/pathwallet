@@ -15,11 +15,11 @@ import { Button } from "@/components/ui/button";
 import { Home, Landmark, PiggyBank, Target, Settings } from "lucide-react";
 
 const navItems = [
-  { href: "/dashboard", label: "დაფა", icon: Home },
-  { href: "/dashboard/income", label: "შემოსავალი", icon: Landmark },
-  { href: "/dashboard/expense", label: "ხარჯები", icon: PiggyBank },
-  { href: "/dashboard/goals", label: "მიზნები", icon: Target },
-  { href: "/dashboard/settings", label: "პარამეტრები", icon: Settings },
+  { href: "/dashboard", label: "Board", icon: Home },
+  { href: "/dashboard/income", label: "Income", icon: Landmark },
+  { href: "/dashboard/expense", label: "Expense", icon: PiggyBank },
+  { href: "/dashboard/goals", label: "Goals", icon: Target },
+  { href: "/dashboard/settings", label: "Settings", icon: Settings },
 ];
 
 const Sidebar = () => {

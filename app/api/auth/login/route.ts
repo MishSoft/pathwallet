@@ -1,25 +1,27 @@
-import { NextResponse } from "next/server";
+// /app/api/auth/login/route.ts
+import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "@/app/lib/prisma";
+import { loginSchema } from "@/app/lib/validation";
 
-const prisma = new PrismaClient();
-
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
-    const { email, password } = await request.json();
+    // 1️⃣ მიღებული მონაცემების ვალიდაცია Zod-ით
+    const body = await request.json();
+    const result = loginSchema.safeParse(body);
 
-    if (!email || !password) {
+    if (!result.success) {
       return NextResponse.json(
-        { error: "Email and password are required." },
+        { errors: result.error.issues },
         { status: 400 }
       );
     }
 
-    const user = await prisma.user.findUnique({
-      where: { email },
-    });
+    const { email, password } = result.data;
 
+    // 2️⃣ მომხმარებლის მოძებნა ბაზაში
+    const user = await prisma.user.findUnique({ where: { email } });
     if (!user) {
       return NextResponse.json(
         { error: "Invalid credentials." },
@@ -27,8 +29,8 @@ export async function POST(request: Request) {
       );
     }
 
+    // 3️⃣ პაროლის შედარება
     const passwordMatch = await bcrypt.compare(password, user.password);
-
     if (!passwordMatch) {
       return NextResponse.json(
         { error: "Invalid credentials." },
@@ -36,6 +38,7 @@ export async function POST(request: Request) {
       );
     }
 
+    // 4️⃣ JWT Token შექმნა
     const secretKey = process.env.JWT_SECRET_KEY;
     if (!secretKey) {
       return NextResponse.json(
@@ -48,10 +51,23 @@ export async function POST(request: Request) {
       expiresIn: "1h",
     });
 
-    return NextResponse.json(
-      { token, message: "Login successful!" },
+    // 5️⃣ პასუხის შექმნა და Cookie–ში token შენახვა
+    const response = NextResponse.json(
+      { message: "Login successful!" },
       { status: 200 }
     );
+
+    response.cookies.set({
+      name: "token",
+      value: token,
+      httpOnly: true, // JS–ს ვერ წაიკითხავს
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      maxAge: 60 * 60, // 1 საათი
+      path: "/",
+    });
+
+    return response;
   } catch (error) {
     console.error("Login failed:", error);
     return NextResponse.json(

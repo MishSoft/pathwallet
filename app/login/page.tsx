@@ -24,11 +24,8 @@ const LoginPage = () => {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    // გვერდის ჩატვირთვისას ვამოწმებთ, არსებობს თუ არა ტოკენი
-    const token = localStorage.getItem("token");
-    if (token) {
-      router.push("/dashboard");
-    }
+    // ამ ეტაპზე, ტოკენს აღარ ვამოწმებთ localStorage-ში
+    // რადგან ის HttpOnly ქუქიშია
   }, [router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -47,12 +44,11 @@ const LoginPage = () => {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || "შესვლა ვერ მოხერხდა.");
+        throw new Error(errorData.error || "Login failed.");
       }
 
-      const data = await response.json();
-      localStorage.setItem("token", data.token);
-
+      // წარმატებული შესვლის შემდეგ, ტოკენი ავტომატურად დაყენდება ქუქიში
+      // არ არის საჭირო localStorage-ში შენახვა
       router.push("/dashboard");
     } catch (err: any) {
       setError(err.message);
@@ -65,15 +61,15 @@ const LoginPage = () => {
     <div className="flex min-h-screen items-center justify-center bg-gray-100 dark:bg-gray-950">
       <Card className="w-full max-w-md p-6 sm:p-8">
         <CardHeader className="space-y-1 text-center">
-          <CardTitle className="text-3xl font-bold">შესვლა</CardTitle>
+          <CardTitle className="text-3xl font-bold">Log In</CardTitle>
           <CardDescription className="text-gray-500 dark:text-gray-400">
-            შეიყვანეთ თქვენი ელფოსტა და პაროლი თქვენს ანგარიშში შესასვლელად
+            Enter your email and password to log in to your account.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form className="space-y-4" onSubmit={handleSubmit}>
             <div className="space-y-2">
-              <Label htmlFor="email">ელფოსტა</Label>
+              <Label htmlFor="email">Email</Label>
               <Input
                 id="email"
                 type="email"
@@ -84,7 +80,7 @@ const LoginPage = () => {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">პაროლი</Label>
+              <Label htmlFor="password">Password</Label>
               <Input
                 id="password"
                 type="password"
@@ -95,13 +91,13 @@ const LoginPage = () => {
             </div>
             {error && <p className="text-sm text-red-500">{error}</p>}
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "შესვლა..." : "შესვლა"}
+              {loading ? "Logging in..." : "Log In"}
             </Button>
           </form>
           <div className="mt-4 text-center text-sm text-gray-500 dark:text-gray-400">
-            ჯერ არ გაქვთ ანგარიში?{" "}
+            You don’t have an account yet.?{" "}
             <a href="/register" className="font-semibold underline">
-              დარეგისტრირდით
+              Register
             </a>
           </div>
         </CardContent>

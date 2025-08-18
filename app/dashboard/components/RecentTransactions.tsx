@@ -45,19 +45,21 @@ const RecentTransactions: React.FC<RecentTransactionsProps> = ({
   );
 
   return (
-    <Card >
+    <Card>
       <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between space-y-2 sm:space-y-0 pb-2">
-        <CardTitle className="text-2xl font-bold">ბოლო ტრანზაქციები</CardTitle>
+        <CardTitle className="text-2xl font-bold">
+          Recent Transactions
+        </CardTitle>
         <div className="flex flex-col gap-2 space-y-2 sm:space-y-0 sm:space-x-2">
           <Button
             variant="outline"
             onClick={onAddIncomeClick}
             className="w-full sm:w-auto"
           >
-            შემოსავლის დამატება
+            Add Income
           </Button>
           <Button onClick={onAddExpenseClick} className="w-full sm:w-auto">
-            ხარჯის დამატება
+            Add Expense
           </Button>
         </div>
       </CardHeader>
@@ -68,16 +70,16 @@ const RecentTransactions: React.FC<RecentTransactionsProps> = ({
             <TableHeader>
               <TableRow>
                 <TableHead className="min-w-[100px] whitespace-nowrap">
-                  ტიპი
+                  Type
                 </TableHead>
                 <TableHead className="min-w-[150px] whitespace-nowrap">
-                  აღწერა
+                  Description
                 </TableHead>
                 <TableHead className="min-w-[100px] whitespace-nowrap text-right">
-                  თანხა
+                  Amount
                 </TableHead>
                 <TableHead className="min-w-[120px] whitespace-nowrap text-right">
-                  თარიღი
+                  Date
                 </TableHead>
               </TableRow>
             </TableHeader>
@@ -88,13 +90,13 @@ const RecentTransactions: React.FC<RecentTransactionsProps> = ({
                   className={"source" in t ? "text-green-500" : "text-red-500"}
                 >
                   <TableCell className="font-medium whitespace-nowrap">
-                    {"source" in t ? "შემოსავალი" : "ხარჯი"}
+                    {"source" in t ? "Income" : "Expense"}
                   </TableCell>
                   <TableCell className="whitespace-nowrap">
                     {"source" in t ? t.source : t.category}
                   </TableCell>
                   <TableCell className="whitespace-nowrap text-right">
-                    {t.amount} ლარი
+                    {t.amount} $
                   </TableCell>
                   <TableCell className="whitespace-nowrap text-right">
                     {new Date(t.date).toLocaleDateString()}
