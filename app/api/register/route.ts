@@ -1,7 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { prisma } from "@/app/lib/prisma";
-import { sendVerificationEmail } from "@/app/lib/mailer";
-import { randomInt } from "crypto";
 import bcrypt from "bcryptjs";
 
 export async function POST(req: Request) {
@@ -16,32 +14,24 @@ export async function POST(req: Request) {
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
-    const verificationToken = randomInt(100000, 999999).toString();
 
     await prisma.user.create({
       data: {
         email,
         name,
         password: hashedPassword,
-        isVerified: false,
-        verificationToken: verificationToken,
+        isVerified: true, // დროებით ავტომატურად ვადასტურებთ
       },
     });
 
-    await sendVerificationEmail(email, verificationToken);
-
-    return new Response(
-      JSON.stringify({ message: "Verification email sent." }),
-      { status: 200 }
-    );
+    return new Response(JSON.stringify({ message: "User created." }), {
+      status: 200,
+    });
   } catch (err: any) {
-    // აქ ჩაანაცვლე შენი catch block
     console.error("Register error:", err);
     return new Response(
       JSON.stringify({ error: err.message || "Internal Server Error" }),
-      {
-        status: 500,
-      }
+      { status: 500 }
     );
   }
 }

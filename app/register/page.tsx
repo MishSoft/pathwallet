@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-// src/app/register/page.tsx
 "use client";
 
 import React, { useState } from "react";
@@ -20,11 +19,15 @@ const RegisterPage = () => {
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [agreed, setAgreed] = useState(false);
+  const [verificationStep, setVerificationStep] = useState(false);
+  const [verificationCode, setVerificationCode] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
   const router = useRouter();
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  // 1️⃣ Step: Send email + code
+  const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError("");
@@ -36,20 +39,37 @@ const RegisterPage = () => {
     }
 
     try {
-      const response = await fetch("../api/auth/register", {
+      const res = await fetch("/api/auth/register", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password, name }),
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Registration failed.");
-      }
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Registration failed.");
+      setVerificationStep(true);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-      // რეგისტრაციის შემდეგ ავტომატურად გადამისამართება შესვლის გვერდზე
+  // 2️⃣ Step: Verify code
+  const handleVerificationSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError("");
+
+    try {
+      const res = await fetch("/api/auth/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, code: verificationCode }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Verification failed.");
       router.push("/login");
     } catch (err: any) {
       setError(err.message);
@@ -61,77 +81,92 @@ const RegisterPage = () => {
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-100 dark:bg-gray-950">
       <Card className="w-full max-w-md p-6 sm:p-8">
-        <CardHeader className="space-y-1 text-center">
+        <CardHeader className="text-center space-y-1">
           <CardTitle className="text-3xl font-bold">Create Account</CardTitle>
           <CardDescription className="text-gray-500 dark:text-gray-400">
-            Enter your details to register.
+            {verificationStep
+              ? "Enter the verification code sent to your email."
+              : "Enter your details to register."}
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form className="space-y-4" onSubmit={handleSubmit}>
-            <div className="space-y-2">
-              <Label htmlFor="name">Name</Label>
-              <Input
-                id="name"
-                type="text"
-                placeholder="Your Name"
-                required
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="example@email.com"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-            </div>
+          <form
+            onSubmit={
+              verificationStep ? handleVerificationSubmit : handleEmailSubmit
+            }
+            className="space-y-4"
+          >
+            {!verificationStep && (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="name">Name</Label>
+                  <Input
+                    id="name"
+                    type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="password">Password</Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="flex items-center mt-4 space-x-2">
+                  <input
+                    id="terms"
+                    type="checkbox"
+                    checked={agreed}
+                    onChange={(e) => setAgreed(e.target.checked)}
+                  />
+                  <label htmlFor="terms">
+                    I agree to the Terms & Conditions.
+                  </label>
+                </div>
+              </>
+            )}
 
-            {/* Terms & Conditions */}
-            <div className="flex items-center space-x-2 mt-4">
-              <input
-                id="terms"
-                type="checkbox"
-                checked={agreed}
-                onChange={(e) => setAgreed(e.target.checked)}
-                className="h-4 w-4 text-pink-500 focus:ring-pink-400 border-gray-300 rounded"
-              />
-              <label
-                htmlFor="terms"
-                className="text-sm text-gray-500 dark:text-gray-400"
-              >
-                I agree to the{" "}
-                <a href="/terms" className="underline text-pink-500">
-                  Terms & Conditions
-                </a>
-                .
-              </label>
-            </div>
+            {/* {verificationStep && (
+              <div className="space-y-2">
+                <Label htmlFor="code">Verification Code</Label>
+                <Input
+                  id="code"
+                  type="text"
+                  value={verificationCode}
+                  onChange={(e) => setVerificationCode(e.target.value)}
+                  required
+                />
+              </div>
+            )} */}
 
-            {error && <p className="text-sm text-red-500">{error}</p>}
+            {error && <p className="text-red-500">{error}</p>}
 
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Registering…" : "Register"}
+            <Button type="submit" disabled={loading} className="w-full">
+              {loading
+                ? "Processing…"
+                : verificationStep
+                ? "Verify"
+                : "Register"}
             </Button>
           </form>
-
           <div className="mt-4 text-center text-sm text-gray-500 dark:text-gray-400">
-            Already have an account?{" "}
+            You have already account ?{" "}
             <a href="/login" className="font-semibold underline">
               Log In
             </a>
