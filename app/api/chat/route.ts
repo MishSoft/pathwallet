@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextRequest, NextResponse } from "next/server";
-import { verifyJWT } from "@/app/lib/auth";
+import { verifyJWT } from "../../lib/auth";
 import { PrismaClient } from "@prisma/client";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 

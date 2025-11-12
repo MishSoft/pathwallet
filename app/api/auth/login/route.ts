@@ -1,9 +1,9 @@
 // /app/api/auth/login/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import { prisma } from "@/app/lib/prisma";
-import { loginSchema } from "@/app/lib/validation";
+import { prisma } from "../../../lib/prisma";
+import { loginSchema } from "../../../lib/validation";
 
 export async function POST(request: NextRequest) {
   try {
@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 4️⃣ JWT Token შექმნა
-    const secretKey = process.env.JWT_SECRET_KEY;
+    const secretKey = process.env.JWT_SECRET_KEY || "-?vnj4mn!8=azk%";
     if (!secretKey) {
       return NextResponse.json(
         { error: "Server configuration error: JWT secret key is not defined." },

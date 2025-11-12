@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { prisma } from "@/app/lib/prisma";
+import { prisma } from "../../../lib/prisma";
 import bcrypt from "bcryptjs";
 
 export async function POST(req: Request) {

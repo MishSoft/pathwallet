@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { prisma } from "@/app/lib/prisma";
-import { sendVerificationEmail } from "@/app/lib/mailer";
+import { prisma } from "../../../lib/prisma";
+import { sendVerificationEmail } from "../../../lib/mailer";
 import { randomInt } from "crypto";
 import bcrypt from "bcryptjs";
 

@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import Header from "../components/Header";
 import Sidebar from "../components/Sidebar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+// import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { MessageSquare, Send } from "lucide-react";
@@ -112,9 +112,9 @@ const ChatPage = () => {
                 <MessageSquare className="h-6 w-6" />
                 <span>AI Assistant</span>
               </CardTitle>
-              <Button variant="outline" onClick={handleClearChat}>
+              <button onClick={handleClearChat}>
                 End Conversation
-              </Button>
+              </button>
             </CardHeader>
             <CardContent className="flex-1 overflow-auto p-4 flex flex-col justify-between">
               <ScrollArea className="flex-1 pr-4 mb-4">
@@ -153,9 +153,9 @@ const ChatPage = () => {
                 className="flex-1"
                 disabled={loading}
               />
-              <Button type="submit" disabled={loading} size="icon">
+              <button type="submit" disabled={loading} >
                 <Send className="h-4 w-4" />
-              </Button>
+              </button>
             </form>
           </Card>
         </div>
