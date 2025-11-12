@@ -1,44 +1,44 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { prisma } from "../../../lib/prisma";
-import { sendVerificationEmail } from "../../../lib/mailer";
-import { randomInt } from "crypto";
 import bcrypt from "bcryptjs";
+import { NextResponse } from "next/server"; // გამოიყენეთ NextResponse Next.js-ის გარემოსთვის
 
 export async function POST(req: Request) {
   try {
     const { email, name, password } = await req.json();
 
+    // 1. მომხმარებლის არსებობის შემოწმება
     const existing = await prisma.user.findUnique({ where: { email } });
     if (existing) {
-      return new Response(JSON.stringify({ error: "User already exists" }), {
-        status: 409,
-      });
+      return NextResponse.json(
+        { error: "User already exists." },
+        { status: 409 }
+      );
     }
 
+    // 2. პაროლის დაჰეშირება
     const hashedPassword = await bcrypt.hash(password, 10);
-    const verificationToken = randomInt(100000, 999999).toString();
 
+    // 3. მომხმარებლის შექმნა ბაზაში
     await prisma.user.create({
       data: {
         email,
         name,
         password: hashedPassword,
-        isVerified: false,
-        verificationToken: verificationToken,
+        isVerified: true, // ✅ ავტომატურად ვერიფიცირებულია
+        // ამოღებულია: verificationToken და verificationTokenExpires
       },
     });
 
-    await sendVerificationEmail(email, verificationToken);
-
-    return new Response(
-      JSON.stringify({ message: "Verification email sent." }),
+    // 4. წარმატებული პასუხი
+    return NextResponse.json(
+      { message: "Registration successful. User automatically verified." },
       { status: 200 }
     );
   } catch (err: any) {
-    // აქ ჩაანაცვლე შენი catch block
     console.error("Register error:", err);
-    return new Response(
-      JSON.stringify({ error: err.message || "Internal Server Error" }),
+    return NextResponse.json(
+      { error: err.message || "Internal Server Error" },
       {
         status: 500,
       }

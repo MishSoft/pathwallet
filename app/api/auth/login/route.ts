@@ -6,6 +6,7 @@ import { prisma } from "../../../lib/prisma";
 import { loginSchema } from "../../../lib/validation";
 
 export async function POST(request: NextRequest) {
+  console.log("SERVER DB URL:", process.env.DATABASE_URL);
   try {
     // 1️⃣ მიღებული მონაცემების ვალიდაცია Zod-ით
     const body = await request.json();
