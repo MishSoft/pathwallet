@@ -20,15 +20,12 @@ const RegisterPage = () => {
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [agreed, setAgreed] = useState(false);
-  const [verificationStep, setVerificationStep] = useState(false);
-  const [verificationCode, setVerificationCode] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
   const router = useRouter();
 
-  // 1️⃣ Step: Send email + code
-  const handleEmailSubmit = async (e: React.FormEvent) => {
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError("");
@@ -47,30 +44,10 @@ const RegisterPage = () => {
       });
 
       const data = await res.json();
+
       if (!res.ok) throw new Error(data.error || "Registration failed.");
-      setVerificationStep(true);
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
 
-  // 2️⃣ Step: Verify code
-  const handleVerificationSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError("");
-
-    try {
-      const res = await fetch("/api/auth/verify", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, code: verificationCode }),
-      });
-
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Verification failed.");
+      // რეგისტრაცია წარმატებულია -> გადავიყვანოთ ლოგინზე
       router.push("/login");
     } catch (err: any) {
       setError(err.message);
@@ -85,84 +62,72 @@ const RegisterPage = () => {
         <CardHeader className="text-center space-y-1">
           <CardTitle className="text-3xl font-bold">Create Account</CardTitle>
           <CardDescription className="text-gray-500 dark:text-gray-400">
-            {verificationStep
-              ? "Enter the verification code sent to your email."
-              : "Enter your details to register."}
+            Enter your details to register.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form
-            onSubmit={
-              handleEmailSubmit
-            }
-            className="space-y-4"
-          >
-            {!verificationStep && (
-              <>
-                <div className="space-y-2">
-                  <Label htmlFor="name">Name</Label>
-                  <Input
-                    id="name"
-                    type="text"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="password">Password</Label>
-                  <Input
-                    id="password"
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                  />
-                </div>
-                <div className="flex items-center mt-4 space-x-2">
-                  <input
-                    id="terms"
-                    type="checkbox"
-                    checked={agreed}
-                    onChange={(e) => setAgreed(e.target.checked)}
-                  />
-                  <label htmlFor="terms" className="text-sm">
-                    I agree to the{" "}
-                    <Link href="/terms"  className="text-blue-600 hover:underline">
-                      Terms & Conditions
-                    </Link>
-                  </label>
-                </div>
-              </>
-            )}
+          <form onSubmit={handleRegister} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="name">Name</Label>
+              <Input
+                id="name"
+                type="text"
+                placeholder="John Doe"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="name@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="password">Password</Label>
+              <Input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+            </div>
 
+            <div className="flex items-center mt-4 space-x-2">
+              <input
+                id="terms"
+                type="checkbox"
+                className="h-4 w-4 rounded border-gray-300"
+                checked={agreed}
+                onChange={(e) => setAgreed(e.target.checked)}
+              />
+              <label htmlFor="terms" className="text-sm text-gray-600 dark:text-gray-400">
+                I agree to the{" "}
+                <Link href="/terms" className="text-blue-600 hover:underline">
+                  Terms & Conditions
+                </Link>
+              </label>
+            </div>
 
-
-            {error && <p className="text-red-500">{error}</p>}
+            {error && <p className="text-sm text-red-500 font-medium">{error}</p>}
 
             <Button type="submit" disabled={loading} className="w-full">
-              {loading
-                ? "Processing…"
-                : verificationStep
-                ? "Verify"
-                : "Register"}
+              {loading ? "Processing…" : "Register"}
             </Button>
           </form>
+
           <div className="mt-4 text-center text-sm text-gray-500 dark:text-gray-400">
-            You have already account ?{" "}
-            <a href="/login" className="font-semibold underline">
+            Already have an account?{" "}
+            <Link href="/login" className="font-semibold text-gray-900 dark:text-white underline">
               Log In
-            </a>
+            </Link>
           </div>
         </CardContent>
       </Card>
