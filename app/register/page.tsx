@@ -93,7 +93,7 @@ const RegisterPage = () => {
         <CardContent>
           <form
             onSubmit={
-              verificationStep ? handleVerificationSubmit : handleEmailSubmit
+              handleEmailSubmit
             }
             className="space-y-4"
           >
@@ -146,18 +146,7 @@ const RegisterPage = () => {
               </>
             )}
 
-            {/* {verificationStep && (
-              <div className="space-y-2">
-                <Label htmlFor="code">Verification Code</Label>
-                <Input
-                  id="code"
-                  type="text"
-                  value={verificationCode}
-                  onChange={(e) => setVerificationCode(e.target.value)}
-                  required
-                />
-              </div>
-            )} */}
+
 
             {error && <p className="text-red-500">{error}</p>}
 
