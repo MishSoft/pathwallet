@@ -1,18 +1,25 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyJWT } from "../../lib/auth";
-import { PrismaClient } from "@prisma/client";
+import { sql } from "@/lib/db";
 
-const prisma = new PrismaClient();
+// ინტერფეისი ფინანსური მიზნისთვის
+interface FinancialGoalRow {
+  id: string;
+  user_id: string;
+  saved_amount: number;
+  target_amount: number;
+}
 
 export async function POST(request: NextRequest) {
   const payload = await verifyJWT(request);
 
+  // თუ JWT ვალიდური არ არის, verifyJWT დააბრუნებს NextResponse-ს ერორით
   if (payload instanceof NextResponse) {
     return payload;
   }
 
   try {
-    const { goalId, amount } = await request.json();
+    const { goalId, amount }: { goalId: string; amount: number } = await request.json();
 
     if (!goalId || !amount) {
       return NextResponse.json(
@@ -21,32 +28,38 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const goal = await prisma.financialGoal.findUnique({
-      where: { id: goalId },
-    });
+    // 1. ვამოწმებთ, არსებობს თუ არა ეს მიზანი და ეკუთვნის თუ არა ამ იუზერს
+    const goals = await sql`
+      SELECT id, user_id, saved_amount, target_amount
+      FROM financial_goals
+      WHERE id = ${goalId} LIMIT 1
+    ` as FinancialGoalRow[];
 
-    if (!goal || goal.userId !== payload.userId) {
+    const goal = goals[0];
+
+    if (!goal || goal.user_id !== payload.userId) {
       return NextResponse.json(
         { error: "Goal not found or unauthorized." },
         { status: 404 }
       );
     }
 
-    const updatedGoal = await prisma.financialGoal.update({
-      where: { id: goalId },
-      data: {
-        savedAmount: {
-          increment: Number(amount), // დამატება არსებულ თანხაზე
-        },
-      },
-    });
+    // 2. ვანახლებთ თანხას SQL-ის საშუალებით
+    // RETURNING * დაგვიბრუნებს განახლებულ ობიექტს პირდაპირ
+    const updatedGoals = await sql`
+      UPDATE financial_goals
+      SET saved_amount = saved_amount + ${Number(amount)}
+      WHERE id = ${goalId}
+      RETURNING *
+    ` as FinancialGoalRow[];
 
-    return NextResponse.json(updatedGoal, { status: 200 });
+    return NextResponse.json(updatedGoals[0], { status: 200 });
+
   } catch (error) {
     console.error("Failed to add savings:", error);
-    return NextResponse.json(
-      { error: "Internal Server Error" },
-      { status: 500 }
-    );
+    if (error instanceof Error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }

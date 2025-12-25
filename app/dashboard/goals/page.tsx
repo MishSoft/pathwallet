@@ -10,13 +10,13 @@ import { Button } from "@/components/ui/button";
 import AddGoalModal from "./components/AddGoalModal";
 import Loader from "../components/Loader";
 
-// მონაცემთა ტიპების განსაზღვრა
+// ინტერფეისი მორგებულია Neon SQL-ზე
 interface FinancialGoal {
   id: string;
   title: string;
-  targetAmount: number;
-  savedAmount: number;
-  createdAt: string;
+  target_amount: number;
+  saved_amount: number;
+  created_at: string;
 }
 
 const GoalsPage = () => {
@@ -27,54 +27,32 @@ const GoalsPage = () => {
   const fetchGoals = async () => {
     setLoading(true);
     try {
-      const response = await fetch("/api/goals", {
-        credentials: "include", // cookie ავტორიზაციისთვის
-      });
-
+      const response = await fetch("/api/goals", { credentials: "include" });
       if (response.ok) {
         const data: FinancialGoal[] = await response.json();
         setGoals(data);
       } else if (response.status === 401) {
         router.push("/login");
-      } else {
-        throw new Error("Failed to fetch goals.");
       }
-    } catch (error: unknown) {
-      if (error instanceof Error) {
-        console.error("Failed to fetch goals:", error.message);
-      }
+    } catch (error) {
+      console.error("Failed to fetch goals:", error);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleAddGoal = async (newGoal: {
-    title: string;
-    targetAmount: number;
-  }) => {
+  const handleAddGoal = async (newGoal: { title: string; targetAmount: number }) => {
     setLoading(true);
     try {
       const response = await fetch("/api/goals", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify(newGoal),
       });
-
-      if (response.ok) {
-        await fetchGoals();
-      } else if (response.status === 401) {
-        router.push("/login");
-      } else {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to add goal.");
-      }
-    } catch (error: unknown) {
-      if (error instanceof Error) {
-        console.error("Failed to add goal:", error.message);
-      }
+      if (response.ok) await fetchGoals();
+    } catch (error) {
+      console.error("Failed to add goal:", error);
     } finally {
       setLoading(false);
     }
@@ -85,25 +63,13 @@ const GoalsPage = () => {
     try {
       const response = await fetch("/api/goals", {
         method: "DELETE",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify({ id }),
       });
-
-      if (response.ok) {
-        await fetchGoals();
-      } else if (response.status === 401) {
-        router.push("/login");
-      } else {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to delete goal.");
-      }
-    } catch (error: unknown) {
-      if (error instanceof Error) {
-        console.error("Failed to delete goal:", error.message);
-      }
+      if (response.ok) await fetchGoals();
+    } catch (error) {
+      console.error("Failed to delete goal:", error);
     } finally {
       setLoading(false);
     }
@@ -113,9 +79,7 @@ const GoalsPage = () => {
     fetchGoals();
   }, []);
 
-  if (loading) {
-    return <Loader />;
-  }
+  if (loading) return <Loader />;
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -132,16 +96,15 @@ const GoalsPage = () => {
               <div className="grid gap-4">
                 {goals.length > 0 ? (
                   goals.map((goal) => {
-                    const progress =
-                      (goal.savedAmount / goal.targetAmount) * 100;
+                    // პროგრესის გამოთვლა ბაზის ცვლადებით
+                    const progress = (goal.saved_amount / goal.target_amount) * 100;
                     return (
                       <Card key={goal.id}>
                         <CardHeader className="flex flex-row items-center justify-between">
                           <div>
                             <CardTitle>{goal.title}</CardTitle>
                             <p className="text-sm text-gray-500 mt-1">
-                              Accumulated: {goal.savedAmount} $ /{" "}
-                              {goal.targetAmount} $
+                              Accumulated: {goal.saved_amount} $ / {goal.target_amount} $
                             </p>
                           </div>
                           <Button

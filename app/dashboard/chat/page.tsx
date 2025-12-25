@@ -68,7 +68,7 @@ const ChatPage = () => {
         headers: {
           "Content-Type": "application/json",
         },
-        credentials: "include", // აქ გამოიყენება cookie ავტორიზაციისთვის
+        credentials: "include", 
         body: JSON.stringify({ prompt: input }),
       });
 

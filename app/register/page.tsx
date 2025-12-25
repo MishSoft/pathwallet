@@ -13,6 +13,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 const RegisterPage = () => {
   const [email, setEmail] = useState("");
@@ -135,8 +136,11 @@ const RegisterPage = () => {
                     checked={agreed}
                     onChange={(e) => setAgreed(e.target.checked)}
                   />
-                  <label htmlFor="terms">
-                    I agree to the Terms & Conditions.
+                  <label htmlFor="terms" className="text-sm">
+                    I agree to the{" "}
+                    <Link href="/terms"  className="text-blue-600 hover:underline">
+                      Terms & Conditions
+                    </Link>
                   </label>
                 </div>
               </>

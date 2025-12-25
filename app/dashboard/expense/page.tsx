@@ -160,7 +160,7 @@ const ExpensesPage = () => {
                               size="sm"
                               onClick={() => handleDeleteExpense(expense.id)}
                             >
-                              წაშლა
+                              Delete
                             </Button>
                           </TableCell>
                         </TableRow>

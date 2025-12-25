@@ -73,7 +73,7 @@ const ExpenseChart: React.FC<ExpenseChartProps> = ({ expenses }) => {
                 ))}
               </Pie>
               {/* Tooltip-ის და Legend-ის პოზიციების ოპტიმიზაცია */}
-              <Tooltip formatter={(value, name) => [`${value} ლარი`, name]} />
+              <Tooltip formatter={(value, name) => [`${value} $`, name]} />
               <Legend
                 layout="horizontal"
                 align="center"

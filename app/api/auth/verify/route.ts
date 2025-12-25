@@ -1,42 +1,30 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import { prisma } from "../../../lib/prisma";
-import bcrypt from "bcryptjs";
+import { NextRequest, NextResponse } from "next/server";
+import { sql } from "@/lib/db";
 
-export async function POST(req: Request) {
+export async function POST(request: NextRequest) {
   try {
-    const { email, name, password } = await req.json();
+    const { email, code }: { email: string; code: string } = await request.json();
 
-    const existing = await prisma.user.findUnique({ where: { email } });
-    if (existing) {
-      return new Response(JSON.stringify({ error: "User already exists" }), {
-        status: 409,
-      });
+    // ვეძებთ იუზერს SQL-ით
+    const users = await sql`
+      SELECT id FROM users
+      WHERE email = ${email} AND verification_token = ${code}
+      LIMIT 1
+    `;
+
+    if (users.length === 0) {
+      return NextResponse.json({ error: "Invalid code" }, { status: 400 });
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
+    // ვუცვლით სტატუსს
+    await sql`
+      UPDATE users
+      SET is_verified = true, verification_token = NULL
+      WHERE email = ${email}
+    `;
 
-    await prisma.user.create({
-      data: {
-        email,
-        name,
-        password: hashedPassword,
-        isVerified: true, // დროებით true
-      },
-    });
-
-    return new Response(
-      JSON.stringify({ message: "User registered successfully." }),
-      {
-        status: 200,
-      }
-    );
-  } catch (err: any) {
-    console.error("Register error:", err);
-    return new Response(
-      JSON.stringify({ error: err.message || "Internal Server Error" }),
-      {
-        status: 500,
-      }
-    );
+    return NextResponse.json({ message: "Verified successfully" });
+  } catch (error) {
+    return NextResponse.json({ error: "Server Error" }, { status: 500 });
   }
 }

@@ -145,7 +145,7 @@ const IncomePage = () => {
                       {incomes.map((income) => (
                         <TableRow key={income.id}>
                           <TableCell>{income.source}</TableCell>
-                          <TableCell>{income.amount} ლარი</TableCell>
+                          <TableCell>{income.amount} $</TableCell>
                           <TableCell>
                             {new Date(income.date).toLocaleDateString()}
                           </TableCell>
