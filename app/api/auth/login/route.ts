@@ -44,13 +44,18 @@ export async function POST(request: NextRequest) {
     }
 
     // 4️⃣ JWT Token შექმნა
-    const secretKey = process.env.JWT_SECRET_KEY || "-?vnj4mn!8=azk%";
+    if (!process.env.JWT_SECRET_KEY) {
+  throw new Error("JWT secret key is not set");
+}
+const secretKey = process.env.JWT_SECRET_KEY;
 
-    const token = jwt.sign(
-      { userId: user.id, email: user.email },
-      secretKey,
-      { expiresIn: "1h" }
-    );
+const token = jwt.sign(
+  { userId: user.id, email: user.email },
+  secretKey,
+  { expiresIn: "1h" }
+);
+
+
 
     // 5️⃣ პასუხი და Cookie-ში შენახვა
     const response = NextResponse.json(

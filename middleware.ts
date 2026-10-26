@@ -15,7 +15,10 @@ export async function middleware(request: NextRequest) {
 
   if (token) {
     try {
-      const secret = new TextEncoder().encode(process.env.JWT_SECRET_KEY);
+      if (!process.env.JWT_SECRET_KEY) {
+  throw new Error("JWT secret key is not set");
+}
+const secret = new TextEncoder().encode(process.env.JWT_SECRET_KEY);
       await jose.jwtVerify(token, secret);
       // თუ ტოკენი ვალიდურია, მომხმარებელს შეუძლია გააგრძელოს
       if (
